@@ -9,8 +9,8 @@ let deuda = 0.00;
 let ticketActivo = null;
 let tarjetaRegistrada = null; // Guardará la info de la tarjeta activa
 
-// Registro de Usuario (Inicializa en 0 saldo)
-function handleRegister(e) {
+// Registro de Usuario vinculado a Supabase
+async function handleRegister(e) {
   e.preventDefault();
   const name = document.getElementById('regName').value;
   const email = document.getElementById('regEmail').value;
@@ -21,6 +21,22 @@ function handleRegister(e) {
     alert("Las contraseñas no coinciden.");
     return;
   }
+
+  // Insertar datos en la tabla 'usuarios' de Supabase
+  const { data, error } = await _supabase
+    .from('usuarios')
+    .insert([{ nombre: name, email: email, password: pass }]);
+
+  if (error) {
+    console.error("Error al registrar en Supabase:", error.message);
+    alert("Hubo un error al conectar con la base de datos.");
+    return;
+  }
+
+  alert("¡Cuenta registrada y guardada en Supabase con éxito!");
+  e.target.reset();
+  showAuthView('login');
+
 
   usuarioActual = { nombre: name, email: email, password: pass };
   saldo = 0.00; // Saldo inicial en cero como se solicitó
