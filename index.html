@@ -29,216 +29,295 @@
   <!-- HTML5-QRCode JS -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body class="bg-brandDark text-white font-sans min-h-screen pb-24">
+<body class="bg-brandDark text-white font-sans min-h-screen">
 
-  <!-- Header Superior -->
-  <header class="bg-brandCard/90 backdrop-blur border-b border-slate-800 p-4 sticky top-0 z-40 flex justify-between items-center shadow-lg">
-    <div class="flex items-center space-x-2">
-      <div class="bg-brandGreen text-brandDark p-2 rounded-xl font-black text-lg">PT</div>
-      <div>
-        <h1 class="font-bold text-lg leading-tight">ParkTrack <span class="text-xs bg-brandBlue text-white px-1.5 py-0.5 rounded-md">3.0</span></h1>
-        <p id="headerPlaca" class="text-xs text-brandGreen font-mono font-semibold">PLACA: ABC-123-A</p>
+  <!-- ========================================== -->
+  <!-- MÓDULO DE AUTENTICACIÓN (PANTALLA INICIAL) -->
+  <!-- ========================================== -->
+  <div id="authContainer" class="fixed inset-0 z-50 bg-brandDark flex flex-col justify-center items-center p-6 overflow-y-auto">
+    
+    <!-- LOGO PARKTRACK (Auto con P Azul) -->
+    <div class="flex flex-col items-center mb-8">
+      <div class="relative w-24 h-24 bg-brandCard border-2 border-slate-800 rounded-3xl flex items-center justify-center shadow-2xl mb-4 group">
+        <!-- Silueta/Icono de Auto -->
+        <span class="text-5xl">🚗</span>
+        <!-- Badge P Azul -->
+        <div class="absolute -top-2 -right-2 bg-brandBlue text-white font-black text-xl w-9 h-9 rounded-full flex items-center justify-center border-2 border-brandDark shadow-lg">
+          P
+        </div>
       </div>
+      <h1 class="text-3xl font-extrabold tracking-tight">ParkTrack <span class="text-brandBlue text-sm bg-brandBlue/10 px-2 py-0.5 rounded-lg border border-brandBlue/30">3.0</span></h1>
+      <p class="text-xs text-slate-400 mt-1">Gestión inteligente de estacionamientos</p>
     </div>
-    <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl text-right">
-      <span class="text-xs text-slate-400 block">Saldo</span>
-      <span id="saldoHeader" class="text-sm font-bold text-brandGreen">$230.00 MXN</span>
+
+    <!-- PANTALLA 1: BIENVENIDA -->
+    <div id="viewBienvenida" class="w-full max-w-sm space-y-4">
+      <button onclick="showAuthView('login')" class="w-full bg-brandGreen hover:bg-emerald-600 text-brandDark font-bold py-3.5 rounded-xl transition text-center shadow-lg">
+        Iniciar Sesión
+      </button>
+      <button onclick="showAuthView('register')" class="w-full bg-brandCard hover:bg-slate-800 border border-slate-700 text-white font-bold py-3.5 rounded-xl transition text-center">
+        Crear Cuenta
+      </button>
     </div>
-  </header>
 
-  <!-- Banner de Deuda / Saldo Insuficiente (Dinámico) -->
-  <div id="alertaDeuda" class="hidden bg-red-900/50 border-b border-red-500/50 px-4 py-2 text-xs text-red-200 flex justify-between items-center">
-    <span>⚠️ Tienes un saldo pendiente a pagar: <strong id="montoDeuda">$0.00</strong></span>
-    <button onclick="switchTab('perfil')" class="underline font-bold text-white">Recargar</button>
-  </div>
-
-  <!-- CONTENIDO DE SECCIONES -->
-  <main class="p-4 max-w-md mx-auto">
-
-    <!-- 1. INICIO -->
-    <section id="tab-inicio" class="tab-content space-y-6">
-      <div class="bg-gradient-to-r from-brandCard to-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
-        <h2 class="text-xl font-bold mb-1">¡Hola de nuevo! 👋</h2>
-        <p class="text-xs text-slate-400 mb-4">¿A dónde te estacionas hoy?</p>
-        
-        <!-- Atajo rápido -->
-        <button onclick="switchTab('escaneo')" class="w-full bg-brandGreen hover:bg-emerald-600 text-brandDark font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-lg transition">
-          <span>📷 Escanear / Generar QR</span>
-        </button>
-      </div>
-
-      <!-- Accesos Rápidos -->
-      <div class="grid grid-cols-2 gap-3">
-        <div onclick="switchTab('recintos')" class="bg-brandCard hover:border-brandBlue cursor-pointer p-4 rounded-2xl border border-slate-800 transition">
-          <div class="text-2xl mb-2">🏟️</div>
-          <h3 class="font-bold text-sm">Recintos</h3>
-          <p class="text-xs text-slate-400">Reserva con antelación y ve mapa</p>
-        </div>
-        <div onclick="switchTab('boletos')" class="bg-brandCard hover:border-brandGreen cursor-pointer p-4 rounded-2xl border border-slate-800 transition">
-          <div class="text-2xl mb-2">🎟️</div>
-          <h3 class="font-bold text-sm">Mis Boletos</h3>
-          <p class="text-xs text-slate-400">Historial y estado de saldo</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- 2. RECINTOS Y MAPA -->
-    <section id="tab-recintos" class="tab-content hidden space-y-4">
-      <h2 class="text-lg font-bold">Recintos Disponibles</h2>
-      <p class="text-xs text-slate-400">Verifica la disponibilidad en tiempo real antes de llegar.</p>
-
-      <!-- Lista de recintos -->
-      <div class="space-y-3">
-        <div class="bg-brandCard p-4 rounded-xl border border-slate-800 flex justify-between items-center">
-          <div>
-            <h3 class="font-bold text-sm">Parque Fundidora</h3>
-            <span class="text-xs text-slate-400">Estacionamiento E6</span>
-          </div>
-          <span class="bg-emerald-500/10 text-brandGreen border border-brandGreen/30 text-xs px-2.5 py-1 rounded-full font-bold">● Disponible (Verde)</span>
-        </div>
-
-        <div class="bg-brandCard p-4 rounded-xl border border-slate-800 flex justify-between items-center">
-          <div>
-            <h3 class="font-bold text-sm">Estadio Sultanes</h3>
-            <span class="text-xs text-slate-400">Acceso Norte</span>
-          </div>
-          <span class="bg-red-500/10 text-brandRed border border-brandRed/30 text-xs px-2.5 py-1 rounded-full font-bold">● Lleno (Rojo)</span>
-        </div>
-
-        <div class="bg-brandCard p-4 rounded-xl border border-slate-800 flex justify-between items-center">
-          <div>
-            <h3 class="font-bold text-sm">Parque La Pastora</h3>
-            <span class="text-xs text-slate-400">Principal</span>
-          </div>
-          <span class="bg-emerald-500/10 text-brandGreen border border-brandGreen/30 text-xs px-2.5 py-1 rounded-full font-bold">● Disponible (Verde)</span>
-        </div>
-      </div>
-
-      <!-- Mapa interactivo Leaflet -->
-      <h3 class="font-bold text-sm pt-2">Ubicaciones en Mapa</h3>
-      <div id="map" class="w-full h-64 rounded-2xl border border-slate-800 z-10"></div>
-    </section>
-
-    <!-- 3. ESCANEAR / QR -->
-    <section id="tab-escaneo" class="tab-content hidden space-y-4 text-center">
-      <h2 class="text-lg font-bold">Acceso por QR</h2>
-      
-      <!-- Estado del QR (Entrada vs Salida) -->
-      <div class="bg-brandCard p-5 rounded-2xl border border-slate-800 space-y-4">
-        <div id="qrStatusContainer" class="space-y-3">
-          <p class="text-xs text-slate-400" id="qrInstruction">Muestra o escanea este código al entrar al recinto.</p>
-          
-          <!-- Simulación de Código QR -->
-          <div class="bg-white p-4 rounded-xl inline-block shadow-inner">
-            <img id="qrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=ParkTrack-Entrada-01" alt="QR Code" class="w-44 h-44 mx-auto">
-          </div>
-
-          <div id="qrActionButtons" class="pt-2">
-            <button id="btnSimularEntrada" onclick="simularEntrada()" class="w-full bg-brandBlue hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition">
-              Simular Registro de ENTRADA 🚗
-            </button>
-            <button id="btnSimularSalida" onclick="simularSalida()" class="hidden w-full bg-brandRed hover:bg-red-600 text-white font-bold py-3 rounded-xl transition">
-              Simular Registro de SALIDA 🏁
-            </button>
-          </div>
-        </div>
-
-        <!-- Lector de cámara webcam -->
-        <div class="border-t border-slate-800 pt-4">
-          <p class="text-xs text-slate-400 mb-2">O bien, escanea con la cámara:</p>
-          <div id="reader" class="w-full rounded-xl overflow-hidden"></div>
-        </div>
-      </div>
-
-      <!-- Ticket generado (Oculto hasta la salida) -->
-      <div id="ticketSalida" class="hidden bg-slate-900 border border-brandGreen p-4 rounded-2xl text-left space-y-2">
-        <h3 class="font-bold text-brandGreen text-center border-b border-slate-800 pb-2">🎟️ TICKET DE SALIDA</h3>
-        <p class="text-xs"><strong>Folio:</strong> <span id="ticketFolio">#PT-001</span></p>
-        <p class="text-xs"><strong>Tiempo transcurrido:</strong> <span id="ticketTiempo">00:00:00</span></p>
-        <p class="text-xs"><strong>Costo total:</strong> <span id="ticketCosto">$0.00 MXN</span></p>
-        <p class="text-xs"><strong>Saldo restante:</strong> <span id="ticketSaldo">$0.00 MXN</span></p>
-      </div>
-    </section>
-
-    <!-- 4. MIS BOLETOS / HISTORIAL -->
-    <section id="tab-boletos" class="tab-content hidden space-y-4">
-      <h2 class="text-lg font-bold">Mis Boletos e Historial</h2>
-      <div id="listaBoletos" class="space-y-3">
-        <!-- Generado dinámicamente desde app.js -->
-      </div>
-    </section>
-
-    <!-- 5. PERFIL -->
-    <section id="tab-perfil" class="tab-content hidden space-y-4">
-      <h2 class="text-lg font-bold">Mi Perfil ParkTrack</h2>
-
-      <!-- Card Datos de Usuario -->
-      <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 flex items-center space-x-4">
-        <div class="bg-brandBlue text-white font-black text-xl w-12 h-12 rounded-2xl flex items-center justify-center">
-          JP
+    <!-- PANTALLA 2: INICIAR SESIÓN -->
+    <div id="viewLogin" class="w-full max-w-sm space-y-4 hidden">
+      <h2 class="text-xl font-bold text-center">Iniciar Sesión</h2>
+      <form onsubmit="handleLogin(event)" class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Correo Electrónico</label>
+          <input type="email" id="loginEmail" required placeholder="usuario@parktrack.com" class="w-full bg-brandCard border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brandGreen">
         </div>
         <div>
-          <h3 class="font-bold text-base">Juan Pérez</h3>
-          <p class="text-xs text-slate-400">usuario@parktrack.com</p>
-          <span class="text-[10px] bg-brandGreen/20 text-brandGreen font-bold px-2 py-0.5 rounded-full mt-1 inline-block">CONDUCTOR FRECUENTE</span>
+          <label class="text-xs text-slate-400 block mb-1">Contraseña</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full bg-brandCard border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brandGreen">
         </div>
-      </div>
-
-      <!-- Recarga de Saldo -->
-      <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 space-y-3">
-        <h3 class="font-bold text-sm text-brandGreen">Recargar Saldo</h3>
-        <div class="flex space-x-2">
-          <input type="number" id="montoRecarga" placeholder="Monto ($)" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-brandGreen">
-          <button onclick="recargarSaldo()" class="bg-brandGreen text-brandDark font-bold px-4 py-2 rounded-xl text-sm transition hover:bg-emerald-500">Recargar</button>
-        </div>
-      </div>
-
-      <!-- Métodos de Pago y Vehículos -->
-      <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 space-y-3">
-        <h3 class="font-bold text-sm">Métodos de Pago</h3>
-        <div class="flex justify-between items-center text-xs bg-slate-900 p-3 rounded-xl border border-slate-800">
-          <span>💳 Visa Débito **** 4821</span>
-          <span class="text-brandGreen font-bold">ACTIVA</span>
-        </div>
-
-        <h3 class="font-bold text-sm pt-2">Vehículo Registrado</h3>
-        <div class="flex justify-between items-center text-xs bg-slate-900 p-3 rounded-xl border border-slate-800">
-          <span>🚗 ABC-123-A</span>
-          <span class="text-brandBlue font-bold">EN USO</span>
-        </div>
-      </div>
-
-      <!-- Botón Cerrar Sesión -->
-      <button onclick="cerrarSesion()" class="w-full bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800 font-bold py-3 rounded-xl transition text-sm">
-        🚪 Cerrar Sesión
+        <button type="submit" class="w-full bg-brandGreen hover:bg-emerald-600 text-brandDark font-bold py-3.5 rounded-xl transition shadow-lg mt-2">
+          Ingresar
+        </button>
+      </form>
+      <button onclick="showAuthView('bienvenida')" class="w-full text-xs text-slate-400 hover:text-white text-center block pt-2">
+        ← Volver
       </button>
-    </section>
+    </div>
 
-  </main>
+    <!-- PANTALLA 3: CREAR CUENTA -->
+    <div id="viewRegister" class="w-full max-w-sm space-y-4 hidden">
+      <h2 class="text-xl font-bold text-center">Crear Cuenta</h2>
+      <form onsubmit="handleRegister(event)" class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Nombre Completo</label>
+          <input type="text" id="regName" required placeholder="Juan Pérez" class="w-full bg-brandCard border border-slate-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brandBlue">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Correo Electrónico</label>
+          <input type="email" id="regEmail" required placeholder="usuario@parktrack.com" class="w-full bg-brandCard border border-slate-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brandBlue">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Contraseña</label>
+          <input type="password" id="regPassword" required placeholder="••••••••" class="w-full bg-brandCard border border-slate-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brandBlue">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Confirmar Contraseña</label>
+          <input type="password" id="regConfirmPassword" required placeholder="••••••••" class="w-full bg-brandCard border border-slate-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brandBlue">
+        </div>
+        <button type="submit" class="w-full bg-brandBlue hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition shadow-lg mt-2">
+          Registrarme
+        </button>
+      </form>
+      <button onclick="showAuthView('bienvenida')" class="w-full text-xs text-slate-400 hover:text-white text-center block pt-2">
+        ← Volver
+      </button>
+    </div>
 
-  <!-- NAVEGACIÓN INFERIOR (TAB BAR) -->
-  <nav class="fixed bottom-0 left-0 right-0 bg-brandCard/95 backdrop-blur border-t border-slate-800 flex justify-around py-3 z-50 text-xs">
-    <button onclick="switchTab('inicio')" class="nav-btn text-brandGreen flex flex-col items-center" id="btn-inicio">
-      <span class="text-lg">🏠</span>
-      <span>Inicio</span>
-    </button>
-    <button onclick="switchTab('recintos')" class="nav-btn text-slate-400 flex flex-col items-center" id="btn-recintos">
-      <span class="text-lg">🏟️</span>
-      <span>Recintos</span>
-    </button>
-    <button onclick="switchTab('escaneo')" class="nav-btn text-slate-400 flex flex-col items-center" id="btn-escaneo">
-      <span class="text-lg">📷</span>
-      <span>Pase QR</span>
-    </button>
-    <button onclick="switchTab('boletos')" class="nav-btn text-slate-400 flex flex-col items-center" id="btn-boletos">
-      <span class="text-lg">🎟️</span>
-      <span>Historial</span>
-    </button>
-    <button onclick="switchTab('perfil')" class="nav-btn text-slate-400 flex flex-col items-center" id="btn-perfil">
-      <span class="text-lg">👤</span>
-      <span>Perfil</span>
-    </button>
-  </nav>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- APLICACIÓN PRINCIPAL (OCULTA POR DEFECTO)  -->
+  <!-- ========================================== -->
+  <div id="appContainer" class="hidden pb-24">
+    
+    <!-- Header Superior -->
+    <header class="bg-brandCard/90 backdrop-blur border-b border-slate-800 p-4 sticky top-0 z-40 flex justify-between items-center shadow-lg">
+      <div class="flex items-center space-x-2">
+        <div class="relative bg-brandDark p-2 rounded-xl border border-slate-800">
+          <span class="text-lg">🚗</span>
+          <span class="absolute -top-1 -right-1 bg-brandBlue text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">P</span>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">ParkTrack <span class="text-xs bg-brandBlue text-white px-1.5 py-0.5 rounded-md">3.0</span></h1>
+          <p id="headerUsuarioNombre" class="text-xs text-brandGreen font-semibold">Juan Pérez</p>
+        </div>
+      </div>
+      <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-xl text-right">
+        <span class="text-xs text-slate-400 block">Saldo</span>
+        <span id="saldoHeader" class="text-sm font-bold text-brandGreen">$230.00 MXN</span>
+      </div>
+    </header>
+
+    <!-- Banner de Deuda -->
+    <div id="alertaDeuda" class="hidden bg-red-900/50 border-b border-red-500/50 px-4 py-2 text-xs text-red-200 flex justify-between items-center">
+      <span>⚠️ Saldo pendiente a pagar: <strong id="montoDeuda">$0.00</strong></span>
+      <button onclick="switchTab('perfil')" class="underline font-bold text-white">Recargar</button>
+    </div>
+
+    <!-- SECCIONES DE LA APLICACIÓN -->
+    <main class="p-4 max-w-md mx-auto">
+
+      <!-- 1. INICIO -->
+      <section id="tab-inicio" class="tab-content space-y-6">
+        <div class="bg-gradient-to-r from-brandCard to-slate-900 p-5 rounded-2xl border border-slate-800 shadow-lg">
+          <h2 class="text-xl font-bold mb-1">¡Hola, <span id="welcomeUserName">Juan</span>! 👋</h2>
+          <p class="text-xs text-slate-400 mb-4">¿A dónde te estacionas hoy?</p>
+          
+          <button onclick="switchTab('escaneo')" class="w-full bg-brandGreen hover:bg-emerald-600 text-brandDark font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-lg transition">
+            <span>📷 Escanear / Generar QR</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div onclick="switchTab('recintos')" class="bg-brandCard hover:border-brandBlue cursor-pointer p-4 rounded-2xl border border-slate-800 transition">
+            <div class="text-2xl mb-2">🏟️</div>
+            <h3 class="font-bold text-sm">Recintos</h3>
+            <p class="text-xs text-slate-400">Lugares disponible y mapa</p>
+          </div>
+          <div onclick="switchTab('boletos')" class="bg-brandCard hover:border-brandGreen cursor-pointer p-4 rounded-2xl border border-slate-800 transition">
+            <div class="text-2xl mb-2">🎟️</div>
+            <h3 class="font-bold text-sm">Mis Boletos</h3>
+            <p class="text-xs text-slate-400">Historial y estado de saldo</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. RECINTOS Y MAPA -->
+      <section id="tab-recintos" class="tab-content hidden space-y-4">
+        <h2 class="text-lg font-bold">Recintos Disponibles</h2>
+        <p class="text-xs text-slate-400">Verifica la disponibilidad antes de llegar.</p>
+
+        <div class="space-y-3">
+          <div class="bg-brandCard p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+            <div>
+              <h3 class="font-bold text-sm">Parque Fundidora</h3>
+              <span class="text-xs text-slate-400">Estacionamiento E6</span>
+            </div>
+            <span class="bg-emerald-500/10 text-brandGreen border border-brandGreen/30 text-xs px-2.5 py-1 rounded-full font-bold">● Disponible</span>
+          </div>
+
+          <div class="bg-brandCard p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+            <div>
+              <h3 class="font-bold text-sm">Estadio Sultanes</h3>
+              <span class="text-xs text-slate-400">Acceso Norte</span>
+            </div>
+            <span class="bg-red-500/10 text-brandRed border border-brandRed/30 text-xs px-2.5 py-1 rounded-full font-bold">● Lleno</span>
+          </div>
+
+          <div class="bg-brandCard p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+            <div>
+              <h3 class="font-bold text-sm">Parque La Pastora</h3>
+              <span class="text-xs text-slate-400">Principal</span>
+            </div>
+            <span class="bg-emerald-500/10 text-brandGreen border border-brandGreen/30 text-xs px-2.5 py-1 rounded-full font-bold">● Disponible</span>
+          </div>
+        </div>
+
+        <h3 class="font-bold text-sm pt-2">Ubicaciones en Mapa</h3>
+        <div id="map" class="w-full h-64 rounded-2xl border border-slate-800 z-10"></div>
+      </section>
+
+      <!-- 3. ESCANEAR / QR -->
+      <section id="tab-escaneo" class="tab-content hidden space-y-4 text-center">
+        <h2 class="text-lg font-bold">Acceso por QR</h2>
+        
+        <div class="bg-brandCard p-5 rounded-2xl border border-slate-800 space-y-4">
+          <div id="qrStatusContainer" class="space-y-3">
+            <p class="text-xs text-slate-400" id="qrInstruction">Muestra o escanea este código al entrar al recinto.</p>
+            
+            <div class="bg-white p-4 rounded-xl inline-block shadow-inner">
+              <img id="qrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=ParkTrack-Entrada-01" alt="QR Code" class="w-44 h-44 mx-auto">
+            </div>
+
+            <div id="qrActionButtons" class="pt-2 space-y-2">
+              <button id="btnSimularEntrada" onclick="simularEntrada()" class="w-full bg-brandBlue hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition">
+                Simular Registro de ENTRADA 🚗
+              </button>
+              <button id="btnSimularSalida" onclick="simularSalida()" class="hidden w-full bg-brandRed hover:bg-red-600 text-white font-bold py-3 rounded-xl transition">
+                Simular Registro de SALIDA 🏁
+              </button>
+            </div>
+          </div>
+
+          <!-- Lector de cámara webcam -->
+          <div class="border-t border-slate-800 pt-4">
+            <button id="btnToggleCamera" onclick="toggleCameraScanner()" class="w-full bg-slate-800 border border-slate-700 text-xs font-bold py-2.5 rounded-xl hover:bg-slate-700 transition mb-3">
+              📷 Encender / Apagar Cámara
+            </button>
+            <div id="reader" class="w-full rounded-xl overflow-hidden min-h-[150px] bg-slate-900"></div>
+          </div>
+        </div>
+
+        <!-- Ticket generado -->
+        <div id="ticketSalida" class="hidden bg-slate-900 border border-brandGreen p-4 rounded-2xl text-left space-y-2">
+          <h3 class="font-bold text-brandGreen text-center border-b border-slate-800 pb-2">🎟️ TICKET DE SALIDA</h3>
+          <p class="text-xs"><strong>Folio:</strong> <span id="ticketFolio">#PT-001</span></p>
+          <p class="text-xs"><strong>Tiempo transcurrido:</strong> <span id="ticketTiempo">01 hrs 15 mins</span></p>
+          <p class="text-xs"><strong>Costo total:</strong> <span id="ticketCosto">$40.00 MXN</span></p>
+          <p class="text-xs"><strong>Saldo restante:</strong> <span id="ticketSaldo">$190.00 MXN</span></p>
+        </div>
+      </section>
+
+      <!-- 4. MIS BOLETOS / HISTORIAL -->
+      <section id="tab-boletos" class="tab-content hidden space-y-4">
+        <h2 class="text-lg font-bold">Mis Boletos e Historial</h2>
+        <div id="listaBoletos" class="space-y-3"></div>
+      </section>
+
+      <!-- 5. PERFIL (SIMPLIFICADO) -->
+      <section id="tab-perfil" class="tab-content hidden space-y-4">
+        <h2 class="text-lg font-bold">Mi Perfil ParkTrack</h2>
+
+        <!-- Card Datos de Usuario -->
+        <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 flex items-center space-x-4">
+          <div id="profileAvatar" class="bg-brandBlue text-white font-black text-xl w-12 h-12 rounded-2xl flex items-center justify-center">
+            JP
+          </div>
+          <div>
+            <h3 id="profileName" class="font-bold text-base">Juan Pérez</h3>
+            <p id="profileEmail" class="text-xs text-slate-400">usuario@parktrack.com</p>
+            <span class="text-[10px] bg-brandGreen/20 text-brandGreen font-bold px-2 py-0.5 rounded-full mt-1 inline-block">CONDUCTOR FRECUENTE</span>
+          </div>
+        </div>
+
+        <!-- Recarga de Saldo -->
+        <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 space-y-3">
+          <h3 class="font-bold text-sm text-brandGreen">Recargar Saldo</h3>
+          <div class="flex space-x-2">
+            <input type="number" id="montoRecarga" placeholder="Monto ($)" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-brandGreen">
+            <button onclick="recargarSaldo()" class="bg-brandGreen text-brandDark font-bold px-4 py-2 rounded-xl text-sm transition hover:bg-emerald-500">Recargar</button>
+          </div>
+        </div>
+
+        <!-- Métodos de Pago -->
+        <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 space-y-3">
+          <h3 class="font-bold text-sm">Métodos de Pago</h3>
+          <div class="flex justify-between items-center text-xs bg-slate-900 p-3 rounded-xl border border-slate-800">
+            <span>💳 Visa Débito **** 4821</span>
+            <span class="text-brandGreen font-bold">ACTIVA</span>
+          </div>
+        </div>
+
+        <!-- Botón Cerrar Sesión -->
+        <button onclick="cerrarSesion()" class="w-full bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800 font-bold py-3 rounded-xl transition text-sm">
+          🚪 Cerrar Sesión
+        </button>
+      </section>
+
+    </main>
+
+    <!-- NAV BAR -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-brandCard/95 backdrop-blur border-t border-slate-800 flex justify-around py-3 z-40 text-xs">
+      <button onclick="switchTab('inicio')" class="nav-btn text-brandGreen flex flex-col items-center" id="btn-inicio">
+        <span class="text-lg">🏠</span>
+        <span>Inicio</span>
+      </button>
+      <button onclick="switchTab('recintos')" class="nav-btn text-slate-400 flex flex-col items-center" id="btn-recintos">
+        <span class="text-lg">🏟️</span>
+        <span>Recintos</span>
+      </button>
+      <button onclick="switchTab('escaneo')" class="nav-btn text-slate-400 flex flex-col items-center" id="btn-escaneo">
+        <span class="text-lg">📷</span>
+        <span>Pase QR</span>
+      </button>
+      <button onclick="switchTab('boletos')" class="nav-btn text-slate-400 flex flex-col items-center" id="btn-boletos">
+        <span class="text-lg">🎟️</span>
+        <span>Historial</span>
+      </button>
+      <button onclick="switchTab('perfil')" class="nav-btn text-slate-400 flex flex-col items-center" id="btn-perfil">
+        <span class="text-lg">👤</span>
+        <span>Perfil</span>
+      </button>
+    </nav>
+
+  </div>
 
   <!-- Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
