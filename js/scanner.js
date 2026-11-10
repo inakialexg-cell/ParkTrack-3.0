@@ -1,6 +1,14 @@
 let html5QrCode = null;
 let cameraActive = false;
 
+// Iniciar la cámara automáticamente al entrar a la sección
+function initScannerSection() {
+  const readerElement = document.getElementById('reader');
+  if (readerElement && !cameraActive) {
+    startCamera();
+  }
+}
+
 function toggleCameraScanner() {
   if (cameraActive) {
     stopCamera();
@@ -16,23 +24,24 @@ function startCamera() {
 
   html5QrCode.start(
     { facingMode: "environment" },
-    { fps: 10, qrbox: { width: 200, height: 200 } },
+    { fps: 10, qrbox: { width: 220, height: 220 } },
     (decodedText) => {
-      alert(`Código QR Detectado: ${decodedText}`);
-      if (!ticketActivo) {
+      // Procesar texto escaneado del QR simulado en la plumilla
+      console.log("QR Escaneado:", decodedText);
+      if (decodedText.includes("ENTRADA") || !ticketActivo) {
         simularEntrada();
-      } else {
+      } else if (decodedText.includes("SALIDA") || ticketActivo) {
         simularSalida();
       }
       stopCamera();
     },
-    () => {} // Ignorar errores continuos de búsqueda
+    () => {} 
   ).then(() => {
     cameraActive = true;
-    document.getElementById('btnToggleCamera').innerText = "🔴 Apagar Cámara";
+    const btn = document.getElementById('btnToggleCamera');
+    if (btn) btn.innerText = "🔴 Apagar Cámara";
   }).catch(err => {
     console.error("Error al iniciar cámara:", err);
-    alert("No se pudo acceder a la cámara. Asegúrate de otorgar los permisos necesarios.");
   });
 }
 
@@ -40,7 +49,8 @@ function stopCamera() {
   if (html5QrCode && cameraActive) {
     html5QrCode.stop().then(() => {
       cameraActive = false;
-      document.getElementById('btnToggleCamera').innerText = "📷 Encender / Apagar Cámara";
+      const btn = document.getElementById('btnToggleCamera');
+      if (btn) btn.innerText = "📷 Encender Cámara";
     }).catch(err => console.error("Error deteniendo cámara:", err));
   }
 }
@@ -53,18 +63,13 @@ function simularEntrada() {
 
   document.getElementById('btnSimularEntrada').classList.add('hidden');
   document.getElementById('btnSimularSalida').classList.remove('hidden');
-  document.getElementById('qrInstruction').innerText = "Muestra este QR al salir del recinto.";
-  document.getElementById('qrImage').src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=ParkTrack-Salida-01";
+  document.getElementById('qrInstruction').innerText = "Muestra este QR de SALIDA en la plumilla.";
+  // Cambia el QR al formato de salida
+  document.getElementById('qrImage').src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=PARKTRACK_SALIDA";
   document.getElementById('ticketSalida').classList.add('hidden');
 
-  alert("¡Entrada registrada correctamente!");
+  alert("¡Entrada registrada con éxito en la plumilla! 🚗");
   actualizarUI();
-
-  // Si la cámara estaba encendida, se reinicia de manera limpia
-  if (cameraActive) {
-    stopCamera();
-    setTimeout(startCamera, 300);
-  }
 }
 
 function simularSalida() {
@@ -77,7 +82,7 @@ function simularSalida() {
   } else {
     deuda += (costoSimulado - saldo);
     saldo = 0;
-    alert("Saldo insuficiente. Se ha acumulado el saldo pendiente en tu cuenta.");
+    alert("Saldo insuficiente. Se ha acumulado una deuda pendiente en tu cuenta.");
   }
 
   // Mostrar Ticket de Salida
@@ -90,12 +95,9 @@ function simularSalida() {
   ticketActivo = null;
   document.getElementById('btnSimularEntrada').classList.remove('hidden');
   document.getElementById('btnSimularSalida').classList.add('hidden');
-  document.getElementById('qrInstruction').innerText = "Muestra o escanea este código al entrar al recinto.";
-  document.getElementById('qrImage').src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=ParkTrack-Entrada-01";
+  document.getElementById('qrInstruction').innerText = "Escanea el QR de entrada en la plumilla.";
+  document.getElementById('qrImage').src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=PARKTRACK_ENTRADA";
 
   actualizarUI();
-
-  if (cameraActive) {
-    stopCamera();
-  }
+  alert("¡Salida procesada correctamente! Buen viaje.");
 }

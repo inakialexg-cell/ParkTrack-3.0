@@ -3,18 +3,20 @@ let mapInitialized = false;
 function initMap() {
   if (mapInitialized) return;
 
-  // Centro en Monterrey
-  const map = L.map('map').setView([25.686613, -100.316113], 12);
+  // Centro en Monterrey y zona metropolitana
+  const map = L.map('map').setView([25.686613, -100.316113], 11);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  // Marcadores de Recintos con disponibilidad Verde/Rojo
   const recintos = [
     { nombre: "Parque Fundidora", coords: [25.678, -100.284], estado: "Verde" },
     { nombre: "Estadio Sultanes", coords: [25.718, -100.316], estado: "Rojo" },
-    { nombre: "Parque La Pastora", coords: [25.666, -100.248], estado: "Verde" }
+    { nombre: "Parque La Pastora", coords: [25.666, -100.248], estado: "Verde" },
+    { nombre: "Paseo La Fe", coords: [25.726, -100.231], estado: "Verde" },
+    { nombre: "Estadio UANL (Volcán)", coords: [25.727, -100.312], estado: "Rojo" },
+    { nombre: "Galerías Monterrey", coords: [25.670, -100.355], estado: "Verde" }
   ];
 
   recintos.forEach(r => {
@@ -26,7 +28,7 @@ function initMap() {
       radius: 9
     }).addTo(map);
 
-    marker.bindPopup(`<b>${r.nombre}</b><br>Estado: ${r.estado === "Verde" ? "Disponible" : "Lleno"}`);
+    marker.bindPopup(`<b>${r.nombre}</b><br>Estado: <span style="color:${color}; font-weight:bold;">${r.estado === "Verde" ? "Disponible" : "Lleno"}</span>`);
   });
 
   mapInitialized = true;
