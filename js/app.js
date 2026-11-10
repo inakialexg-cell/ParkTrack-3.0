@@ -25,8 +25,8 @@ function showAuthView(viewName) {
   if (viewName === 'register') document.getElementById('viewRegister').classList.remove('hidden');
 }
 
-// Registro e Inicio de Sesión
-async function handleRegister(e) {
+// Registro de Usuario
+function handleRegister(e) {
   e.preventDefault();
   const name = document.getElementById('regName').value;
   const email = document.getElementById('regEmail').value;
@@ -38,10 +38,17 @@ async function handleRegister(e) {
     return;
   }
 
-  usuarioActual = { nombre: name, email: email, password: pass };
+  // Actualizar el usuario actual con los datos ingresados
+  usuarioActual = { 
+    nombre: name, 
+    email: email, 
+    password: pass 
+  };
 
-  // Guardar usuario localmente y notificar
-  alert("¡Cuenta registrada exitosamente!");
+  alert("¡Cuenta registrada con éxito! Por favor, inicia sesión con tus datos.");
+  
+  // Limpiar formulario y regresar al login
+  e.target.reset();
   showAuthView('login');
 }
 
