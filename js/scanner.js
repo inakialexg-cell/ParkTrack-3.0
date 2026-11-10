@@ -1,14 +1,109 @@
 let html5QrCode = null;
 let cameraActive = false;
 
-// Iniciar la cámara automáticamente al entrar a la sección
+// Iniciar sección de QR y verificar estado actual
 function initScannerSection() {
-  const readerElement = document.getElementById('reader');
-  if (readerElement && !cameraActive) {
-    startCamera();
+  actualizarVistaQR();
+}
+
+function actualizarVistaQR() {
+  const container = document.getElementById('qrStatusContainer');
+  if (!container) return;
+
+  if (!ticketActivo) {
+    // ESTADO: NO HAY BOLETE ACTIVO (MOSTRAR QR DE ENTRADA)
+    container.innerHTML = `
+      <p class="text-xs text-slate-400">Genera tu boleto de entrada para acceder al recinto.</p>
+      <div class="bg-white p-4 rounded-xl inline-block shadow-inner">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=PARKTRACK_ACCESO_ENTRADA" alt="QR Entrada" class="w-44 h-44 mx-auto">
+      </div>
+      <div class="pt-2">
+        <button onclick="generarBoletoEntrada()" class="w-full bg-brandBlue hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition shadow-lg">
+          🎟️ Generar Boleto de ENTRADA
+        </button>
+      </div>
+    `;
+  } else {
+    // ESTADO: BOLETO ACTIVO (MOSTRAR ESCÁNER Y QR DE SALIDA PARA LA PLUMILLA)
+    container.innerHTML = `
+      <p class="text-xs text-brandGreen font-bold">🚗 Tienes un estacionamiento en curso (Folio: ${ticketActivo.folio})</p>
+      <p class="text-xs text-slate-400">Escanea el código QR en la salida o enciende la cámara:</p>
+      
+      <div class="bg-white p-4 rounded-xl inline-block shadow-inner">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=PARKTRACK_SALIDA_${ticketActivo.folio}" alt="QR Salida" class="w-36 h-36 mx-auto">
+      </div>
+
+      <div class="pt-2 space-y-2">
+        <button onclick="procesarSalida()" class="w-full bg-brandRed hover:bg-red-600 text-white font-bold py-3 rounded-xl transition shadow-lg">
+          🏁 Simular Escaneo de Salida (Plumilla)
+        </button>
+        <button id="btnToggleCamera" onclick="toggleCameraScanner()" class="w-full bg-slate-800 border border-slate-700 text-xs font-bold py-2.5 rounded-xl hover:bg-slate-700 transition">
+          📷 Encender Cámara para Escanear
+        </button>
+      </div>
+    `;
   }
 }
 
+// Generar Boleto de Entrada
+function generarBoletoEntrada() {
+  const folioGen = `#PT-${Math.floor(Math.random() * 9000 + 1000)}`;
+  ticketActivo = {
+    folio: folioGen,
+    recinto: "Parque Fundidora / General",
+    horaEntrada: new Date().toLocaleTimeString(),
+    timestampEntrada: Date.now()
+  };
+
+  alert(`¡Boleto ${folioGen} generado con éxito! Ya puedes ingresar.`);
+  actualizarVistaQR();
+  actualizarUI();
+}
+
+// Procesar Salida y Guardar en Historial
+function procesarSalida() {
+  if (!ticketActivo) return;
+
+  const costoSimulado = 40.00;
+  const horaSalidaStr = new Date().toLocaleTimeString();
+
+  if (saldo >= costoSimulado) {
+    saldo -= costoSimulado;
+  } else {
+    deuda += (costoSimulado - saldo);
+    saldo = 0;
+    alert("Saldo insuficiente. Se ha generado una deuda pendiente en tu cuenta.");
+  }
+
+  // Crear objeto para el historial
+  const registroHistorial = {
+    folio: ticketActivo.folio,
+    entrada: ticketActivo.horaEntrada,
+    salida: horaSalidaStr,
+    costo: costoSimulado,
+    estado: "Completado"
+  };
+
+  // Guardar en el arreglo global de historial (que alimenta "Mis Boletos")
+  if (!window.historialBoletos) window.historialBoletos = [];
+  window.historialBoletos.unshift(registroHistorial);
+
+  // Mostrar Ticket Final en pantalla
+  document.getElementById('ticketSalida').classList.remove('hidden');
+  document.getElementById('ticketFolio').innerText = ticketActivo.folio;
+  document.getElementById('ticketCosto').innerText = `$${costoSimulado.toFixed(2)} MXN`;
+  document.getElementById('ticketSaldo').innerText = `$${saldo.toFixed(2)} MXN`;
+
+  // Limpiar ticket activo
+  ticketActivo = null;
+  stopCamera();
+  actualizarVistaQR();
+  actualizarUI();
+
+  alert("¡Salida registrada por la plumilla con éxito! Cobro aplicado.");
+}
+
+// Control de Cámara Web para Escanear QR físico o simulado
 function toggleCameraScanner() {
   if (cameraActive) {
     stopCamera();
@@ -18,30 +113,33 @@ function toggleCameraScanner() {
 }
 
 function startCamera() {
+  const readerDiv = document.getElementById('reader');
+  if (!readerDiv) return;
+
   if (!html5QrCode) {
     html5QrCode = new Html5Qrcode("reader");
   }
 
   html5QrCode.start(
     { facingMode: "environment" },
-    { fps: 10, qrbox: { width: 220, height: 220 } },
+    { fps: 10, qrbox: { width: 200, height: 200 } },
     (decodedText) => {
-      // Procesar texto escaneado del QR simulado en la plumilla
       console.log("QR Escaneado:", decodedText);
-      if (decodedText.includes("ENTRADA") || !ticketActivo) {
-        simularEntrada();
+      if (decodedText.includes("ENTRADA") && !ticketActivo) {
+        generarBoletoEntrada();
       } else if (decodedText.includes("SALIDA") || ticketActivo) {
-        simularSalida();
+        procesarSalida();
       }
       stopCamera();
     },
-    () => {} 
+    () => {}
   ).then(() => {
     cameraActive = true;
     const btn = document.getElementById('btnToggleCamera');
     if (btn) btn.innerText = "🔴 Apagar Cámara";
   }).catch(err => {
     console.error("Error al iniciar cámara:", err);
+    alert("No se pudo acceder a la cámara.");
   });
 }
 
@@ -50,54 +148,7 @@ function stopCamera() {
     html5QrCode.stop().then(() => {
       cameraActive = false;
       const btn = document.getElementById('btnToggleCamera');
-      if (btn) btn.innerText = "📷 Encender Cámara";
+      if (btn) btn.innerText = "📷 Encender Cámara para Escanear";
     }).catch(err => console.error("Error deteniendo cámara:", err));
   }
-}
-
-function simularEntrada() {
-  ticketActivo = {
-    horaEntrada: new Date().toLocaleTimeString(),
-    timestampEntrada: Date.now()
-  };
-
-  document.getElementById('btnSimularEntrada').classList.add('hidden');
-  document.getElementById('btnSimularSalida').classList.remove('hidden');
-  document.getElementById('qrInstruction').innerText = "Muestra este QR de SALIDA en la plumilla.";
-  // Cambia el QR al formato de salida
-  document.getElementById('qrImage').src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=PARKTRACK_SALIDA";
-  document.getElementById('ticketSalida').classList.add('hidden');
-
-  alert("¡Entrada registrada con éxito en la plumilla! 🚗");
-  actualizarUI();
-}
-
-function simularSalida() {
-  if (!ticketActivo) return;
-
-  const costoSimulado = 40.00;
-  
-  if (saldo >= costoSimulado) {
-    saldo -= costoSimulado;
-  } else {
-    deuda += (costoSimulado - saldo);
-    saldo = 0;
-    alert("Saldo insuficiente. Se ha acumulado una deuda pendiente en tu cuenta.");
-  }
-
-  // Mostrar Ticket de Salida
-  document.getElementById('ticketSalida').classList.remove('hidden');
-  document.getElementById('ticketFolio').innerText = `#PT-${Math.floor(Math.random() * 9000 + 1000)}`;
-  document.getElementById('ticketCosto').innerText = `$${costoSimulado.toFixed(2)} MXN`;
-  document.getElementById('ticketSaldo').innerText = `$${saldo.toFixed(2)} MXN`;
-
-  // Reiniciar estado a Entrada
-  ticketActivo = null;
-  document.getElementById('btnSimularEntrada').classList.remove('hidden');
-  document.getElementById('btnSimularSalida').classList.add('hidden');
-  document.getElementById('qrInstruction').innerText = "Escanea el QR de entrada en la plumilla.";
-  document.getElementById('qrImage').src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=PARKTRACK_ENTRADA";
-
-  actualizarUI();
-  alert("¡Salida procesada correctamente! Buen viaje.");
 }

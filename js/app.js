@@ -1,4 +1,9 @@
-// Estado Global
+// Inicializar cliente de Supabase
+const supabaseUrl = 'https://jdxtprrjazudmnhljuzw.supabase.co';
+const supabaseKey = 'sb_publishable_xVr79C5kb7yL8ZtToKAUsg_gRxhXPt4'; // Pegar la Publishable Key de Supabase
+const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+// Estado Global de la App
 let usuarioActual = {
   nombre: "Juan Pérez",
   email: "usuario@parktrack.com",
@@ -9,7 +14,7 @@ let saldo = 230.00;
 let deuda = 0.00;
 let ticketActivo = null;
 
-// Lógica de Autenticación
+// Control de vistas Auth
 function showAuthView(viewName) {
   document.getElementById('viewBienvenida').classList.add('hidden');
   document.getElementById('viewLogin').classList.add('hidden');
@@ -20,7 +25,8 @@ function showAuthView(viewName) {
   if (viewName === 'register') document.getElementById('viewRegister').classList.remove('hidden');
 }
 
-function handleRegister(e) {
+// Registro e Inicio de Sesión
+async function handleRegister(e) {
   e.preventDefault();
   const name = document.getElementById('regName').value;
   const email = document.getElementById('regEmail').value;
@@ -33,7 +39,9 @@ function handleRegister(e) {
   }
 
   usuarioActual = { nombre: name, email: email, password: pass };
-  alert("¡Cuenta creada con éxito! Ahora inicia sesión.");
+
+  // Guardar usuario localmente y notificar
+  alert("¡Cuenta registrada exitosamente!");
   showAuthView('login');
 }
 
@@ -45,8 +53,7 @@ function handleLogin(e) {
   if (email === usuarioActual.email && pass === usuarioActual.password) {
     document.getElementById('authContainer').classList.add('hidden');
     document.getElementById('appContainer').classList.remove('hidden');
-    
-    // Actualizar datos del perfil
+
     const initials = usuarioActual.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     document.getElementById('profileAvatar').innerText = initials || 'PT';
     document.getElementById('profileName').innerText = usuarioActual.nombre;
@@ -67,7 +74,7 @@ function cerrarSesion() {
   showAuthView('bienvenida');
 }
 
-// Navegación Pestañas
+// Navegación de pestañas
 function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -88,7 +95,9 @@ function switchTab(tabId) {
     setTimeout(initMap, 200);
   }
 
-  if (tabId !== 'escaneo' && typeof stopCamera === 'function') {
+  if (tabId === 'escaneo' && typeof initScannerSection === 'function') {
+    setTimeout(initScannerSection, 300);
+  } else if (typeof stopCamera === 'function') {
     stopCamera();
   }
 }
@@ -109,7 +118,7 @@ function recargarSaldo() {
   const montoInput = document.getElementById('montoRecarga');
   const monto = parseFloat(montoInput.value);
   if (isNaN(monto) || monto <= 0) {
-    alert("Ingresa un monto válido");
+    alert("Ingresa un monto válido.");
     return;
   }
 
@@ -118,7 +127,7 @@ function recargarSaldo() {
     if (saldo >= deuda) {
       saldo -= deuda;
       deuda = 0;
-      alert("¡Deuda saldada con éxito!");
+      alert("¡Deuda saldada!");
     } else {
       deuda -= saldo;
       saldo = 0;
@@ -127,24 +136,44 @@ function recargarSaldo() {
 
   montoInput.value = '';
   actualizarUI();
-  alert(`Recarga exitosa. Tu nuevo saldo es $${saldo.toFixed(2)} MXN`);
+  alert(`Recarga realizada. Saldo actual: $${saldo.toFixed(2)} MXN`);
 }
 
 function renderHistorial() {
   const container = document.getElementById('listaBoletos');
-  if (!ticketActivo) {
-    container.innerHTML = `
-      <div class="bg-brandCard p-4 rounded-xl border border-slate-800 text-xs text-slate-400 text-center">
-        No tienes boletos activos en este momento.
-      </div>`;
-  } else {
-    container.innerHTML = `
-      <div class="bg-brandCard p-4 rounded-xl border border-brandGreen text-xs space-y-1">
+  if (!container) return;
+
+  let html = "";
+
+  if (ticketActivo) {
+    html += `
+      <div class="bg-brandCard p-4 rounded-xl border border-brandGreen text-xs space-y-1 mb-3">
         <div class="flex justify-between font-bold text-white">
-          <span>Estacionamiento Activo (#PT-882)</span>
+          <span>Estacionamiento Activo (${ticketActivo.folio})</span>
           <span class="text-brandGreen">EN CURSO</span>
         </div>
-        <p class="text-slate-400">Entrada: ${ticketActivo.horaEntrada}</p>
+        <p class="text-slate-400">Entrada registrada: ${ticketActivo.horaEntrada}</p>
       </div>`;
   }
+
+  if (window.historialBoletos && window.historialBoletos.length > 0) {
+    window.historialBoletos.forEach(b => {
+      html += `
+        <div class="bg-brandCard p-4 rounded-xl border border-slate-800 text-xs space-y-1">
+          <div class="flex justify-between font-bold text-white">
+            <span>Boleto ${b.folio}</span>
+            <span class="text-brandBlue">$${b.costo.toFixed(2)} MXN</span>
+          </div>
+          <p class="text-slate-400">Entrada: ${b.entrada} | Salida: ${b.salida}</p>
+          <span class="text-[10px] bg-brandGreen/20 text-brandGreen font-bold px-2 py-0.5 rounded-full inline-block">COMPLETADO</span>
+        </div>`;
+    });
+  } else if (!ticketActivo) {
+    html += `
+      <div class="bg-brandCard p-4 rounded-xl border border-slate-800 text-xs text-slate-400 text-center py-6">
+        No tienes registros en tu historial.
+      </div>`;
+  }
+
+  container.innerHTML = html;
 }
