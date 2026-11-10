@@ -1,0 +1,15 @@
+/* Personalización adicional de Leaflet para encajar con el tema oscuro */
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background-color: #131B2E !important;
+  color: #ffffff !important;
+  border: 1px solid #374151;
+}
+
+.tab-content {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
