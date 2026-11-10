@@ -248,45 +248,63 @@
         <div id="listaBoletos" class="space-y-3"></div>
       </section>
 
-      <!-- 5. PERFIL (SIMPLIFICADO) -->
-      <section id="tab-perfil" class="tab-content hidden space-y-4">
-        <h2 class="text-lg font-bold">Mi Perfil ParkTrack</h2>
+      <!-- 5. PERFIL -->
+<section id="tab-perfil" class="tab-content hidden space-y-4">
+  <h2 class="text-lg font-bold">Mi Perfil ParkTrack</h2>
 
-        <!-- Card Datos de Usuario -->
-        <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 flex items-center space-x-4">
-          <div id="profileAvatar" class="bg-brandBlue text-white font-black text-xl w-12 h-12 rounded-2xl flex items-center justify-center">
-            JP
-          </div>
-          <div>
-            <h3 id="profileName" class="font-bold text-base">Juan Pérez</h3>
-            <p id="profileEmail" class="text-xs text-slate-400">usuario@parktrack.com</p>
-            <span class="text-[10px] bg-brandGreen/20 text-brandGreen font-bold px-2 py-0.5 rounded-full mt-1 inline-block">CONDUCTOR FRECUENTE</span>
-          </div>
-        </div>
+  <!-- Card Datos de Usuario -->
+  <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 flex items-center space-x-4">
+    <div id="profileAvatar" class="bg-brandBlue text-white font-black text-xl w-12 h-12 rounded-2xl flex items-center justify-center">
+      JP
+    </div>
+    <div>
+      <h3 id="profileName" class="font-bold text-base">Juan Pérez</h3>
+      <p id="profileEmail" class="text-xs text-slate-400">usuario@parktrack.com</p>
+      <span class="text-[10px] bg-brandGreen/20 text-brandGreen font-bold px-2 py-0.5 rounded-full mt-1 inline-block">CONDUCTOR FRECUENTE</span>
+    </div>
+  </div>
 
-        <!-- Recarga de Saldo -->
-        <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 space-y-3">
-          <h3 class="font-bold text-sm text-brandGreen">Recargar Saldo</h3>
-          <div class="flex space-x-2">
-            <input type="number" id="montoRecarga" placeholder="Monto ($)" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-brandGreen">
-            <button onclick="recargarSaldo()" class="bg-brandGreen text-brandDark font-bold px-4 py-2 rounded-xl text-sm transition hover:bg-emerald-500">Recargar</button>
-          </div>
-        </div>
+  <!-- Gestión de Tarjeta de Crédito -->
+  <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 space-y-3">
+    <h3 class="font-bold text-sm flex justify-between items-center">
+      <span>💳 Método de Pago (Tarjeta)</span>
+      <span id="estadoTarjetaBadge" class="text-[10px] bg-red-500/20 text-brandRed px-2 py-0.5 rounded-full font-bold">NO REGISTRADA</span>
+    </h3>
+    
+    <div id="tarjetaInfoContainer" class="text-xs text-slate-400 bg-slate-900 p-3 rounded-xl border border-slate-800">
+      No tienes ninguna tarjeta vinculada. Es obligatoria para realizar cobros de estacionamiento.
+    </div>
 
-        <!-- Métodos de Pago -->
-        <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 space-y-3">
-          <h3 class="font-bold text-sm">Métodos de Pago</h3>
-          <div class="flex justify-between items-center text-xs bg-slate-900 p-3 rounded-xl border border-slate-800">
-            <span>💳 Visa Débito **** 4821</span>
-            <span class="text-brandGreen font-bold">ACTIVA</span>
-          </div>
-        </div>
-
-        <!-- Botón Cerrar Sesión -->
-        <button onclick="cerrarSesion()" class="w-full bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800 font-bold py-3 rounded-xl transition text-sm">
-          🚪 Cerrar Sesión
+    <!-- Formulario para agregar tarjeta -->
+    <div id="formAgregarTarjeta" class="space-y-2 pt-1">
+      <input type="text" id="inputNumTarjeta" placeholder="Número de tarjeta (ej. 4821 ••••)" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brandBlue">
+      <div class="flex space-x-2">
+        <button onclick="registrarTarjeta()" class="w-full bg-brandBlue hover:bg-blue-600 text-white font-bold py-2 rounded-xl text-xs transition">
+          Vincular Tarjeta
         </button>
-      </section>
+      </div>
+    </div>
+
+    <!-- Botón para eliminar tarjeta (Oculto por defecto si no hay tarjeta) -->
+    <button id="btnEliminarTarjeta" onclick="eliminarTarjeta()" class="hidden w-full bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800 font-bold py-2 rounded-xl transition text-xs">
+      🗑️ Eliminar Tarjeta Registrada
+    </button>
+  </div>
+
+  <!-- Recarga de Saldo -->
+  <div class="bg-brandCard p-4 rounded-2xl border border-slate-800 space-y-3">
+    <h3 class="font-bold text-sm text-brandGreen">Recargar Saldo</h3>
+    <div class="flex space-x-2">
+      <input type="number" id="montoRecarga" placeholder="Monto ($)" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-brandGreen">
+      <button onclick="recargarSaldo()" class="bg-brandGreen text-brandDark font-bold px-4 py-2 rounded-xl text-sm transition hover:bg-emerald-500">Recargar</button>
+    </div>
+  </div>
+
+  <!-- Botón Cerrar Sesión -->
+  <button onclick="cerrarSesion()" class="w-full bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800 font-bold py-3 rounded-xl transition text-sm">
+    🚪 Cerrar Sesión
+  </button>
+</section>
 
     </main>
 

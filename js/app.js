@@ -3,16 +3,79 @@ const supabaseUrl = 'https://jdxtprrjazudmnhljuzw.supabase.co';
 const supabaseKey = 'sb_publishable_xVr79C5kb7yL8ZtToKAUsg_gRxhXPt4'; // Pegar la Publishable Key de Supabase
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-// Estado Global de la App
-let usuarioActual = {
-  nombre: "Juan Pérez",
-  email: "usuario@parktrack.com",
-  password: "123"
-};
-
-let saldo = 230.00;
+// Estado Global con Saldo en 0.00 al registrarse
+let saldo = 0.00;
 let deuda = 0.00;
 let ticketActivo = null;
+let tarjetaRegistrada = null; // Guardará la info de la tarjeta activa
+
+// Registro de Usuario (Inicializa en 0 saldo)
+function handleRegister(e) {
+  e.preventDefault();
+  const name = document.getElementById('regName').value;
+  const email = document.getElementById('regEmail').value;
+  const pass = document.getElementById('regPassword').value;
+  const confirmPass = document.getElementById('regConfirmPassword').value;
+
+  if (pass !== confirmPass) {
+    alert("Las contraseñas no coinciden.");
+    return;
+  }
+
+  usuarioActual = { nombre: name, email: email, password: pass };
+  saldo = 0.00; // Saldo inicial en cero como se solicitó
+  tarjetaRegistrada = null;
+
+  alert("¡Cuenta creada con éxito! Comienzas con un saldo de $0.00 MXN. Inicia sesión para vincular tu tarjeta.");
+  e.target.reset();
+  showAuthView('login');
+}
+
+// Funciones de Gestión de Tarjeta de Crédito
+function registrarTarjeta() {
+  const numInput = document.getElementById('inputNumTarjeta').value.trim();
+  if (!numInput || numInput.length < 4) {
+    alert("Ingresa un número de tarjeta válido.");
+    return;
+  }
+
+  // Tomar los últimos 4 dígitos por seguridad visual
+  const ultimosDigitos = numInput.slice(-4);
+  tarjetaRegistrada = `Visa/Mastercard •••• ${ultimosDigitos}`;
+
+  actualizarUIPerfil();
+  alert("¡Tarjeta de crédito vinculada con éxito!");
+}
+
+function eliminarTarjeta() {
+  if (confirm("¿Estás seguro de eliminar tu tarjeta? Recuerda que no podrás realizar cargos ni salir de los recintos sin una tarjeta activa.")) {
+    tarjetaRegistrada = null;
+    actualizarUIPerfil();
+    alert("Tarjeta eliminada correctamente.");
+  }
+}
+
+function actualizarUIPerfil() {
+  const badge = document.getElementById('estadoTarjetaBadge');
+  const infoContainer = document.getElementById('tarjetaInfoContainer');
+  const formCard = document.getElementById('formAgregarTarjeta');
+  const btnDelete = document.getElementById('btnEliminarTarjeta');
+
+  if (tarjetaRegistrada) {
+    badge.innerText = "ACTIVA";
+    badge.className = "text-[10px] bg-emerald-500/20 text-brandGreen px-2 py-0.5 rounded-full font-bold";
+    infoContainer.innerHTML = `💳 ${tarjetaRegistrada} <br><span class="text-brandGreen font-semibold">Lista para cobros automáticos</span>`;
+    formCard.classList.add('hidden');
+    btnDelete.classList.remove('hidden');
+  } else {
+    badge.innerText = "NO REGISTRADA";
+    badge.className = "text-[10px] bg-red-500/20 text-brandRed px-2 py-0.5 rounded-full font-bold";
+    infoContainer.innerHTML = `No tienes ninguna tarjeta vinculada. Es obligatoria para realizar cobros de estacionamiento.`;
+    formCard.classList.remove('hidden');
+    btnDelete.classList.add('hidden');
+    document.getElementById('inputNumTarjeta').value = '';
+  }
+}
 
 // Control de vistas Auth
 function showAuthView(viewName) {
@@ -50,6 +113,35 @@ function handleRegister(e) {
   // Limpiar formulario y regresar al login
   e.target.reset();
   showAuthView('login');
+
+  // Registro de Usuario vinculado a Supabase
+async function handleRegister(e) {
+  e.preventDefault();
+  const name = document.getElementById('regName').value;
+  const email = document.getElementById('regEmail').value;
+  const pass = document.getElementById('regPassword').value;
+  const confirmPass = document.getElementById('regConfirmPassword').value;
+
+  if (pass !== confirmPass) {
+    alert("Las contraseñas no coinciden.");
+    return;
+  }
+
+  // Guardar en la tabla 'usuarios' de Supabase
+  const { data, error } = await _supabase
+    .from('usuarios')
+    .insert([{ nombre: name, email: email, password: pass }]);
+
+  if (error) {
+    console.error("Error al registrar en Supabase:", error.message);
+    alert("Hubo un error al registrar la cuenta en la base de datos.");
+    return;
+  }
+
+  alert("¡Cuenta registrada y guardada en Supabase con éxito!");
+  e.target.reset();
+  showAuthView('login');
+}
 }
 
 function handleLogin(e) {

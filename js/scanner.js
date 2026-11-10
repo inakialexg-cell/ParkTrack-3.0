@@ -64,6 +64,13 @@ function generarBoletoEntrada() {
 function procesarSalida() {
   if (!ticketActivo) return;
 
+  // REGLA DE NEGOCIO: No se puede realizar ningún cargo sin tarjeta registrada
+  if (!tarjetaRegistrada) {
+    alert("⚠️ ACCIÓN DENEGADA: No puedes procesar la salida ni realizar cargos sin tener una tarjeta de crédito registrada en tu perfil.");
+    switchTab('perfil'); // Redirigir al usuario al perfil para que agregue su tarjeta
+    return;
+  }
+
   const costoSimulado = 40.00;
   const horaSalidaStr = new Date().toLocaleTimeString();
 
@@ -72,10 +79,10 @@ function procesarSalida() {
   } else {
     deuda += (costoSimulado - saldo);
     saldo = 0;
-    alert("Saldo insuficiente. Se ha generado una deuda pendiente en tu cuenta.");
+    alert("Saldo insuficiente cubierto con tu tarjeta de crédito vinculada.");
   }
 
-  // Crear objeto para el historial
+  // Registrar en el historial
   const registroHistorial = {
     folio: ticketActivo.folio,
     entrada: ticketActivo.horaEntrada,
@@ -84,25 +91,24 @@ function procesarSalida() {
     estado: "Completado"
   };
 
-  // Guardar en el arreglo global de historial (que alimenta "Mis Boletos")
   if (!window.historialBoletos) window.historialBoletos = [];
   window.historialBoletos.unshift(registroHistorial);
 
-  // Mostrar Ticket Final en pantalla
+  // Mostrar ticket final
   document.getElementById('ticketSalida').classList.remove('hidden');
   document.getElementById('ticketFolio').innerText = ticketActivo.folio;
   document.getElementById('ticketCosto').innerText = `$${costoSimulado.toFixed(2)} MXN`;
   document.getElementById('ticketSaldo').innerText = `$${saldo.toFixed(2)} MXN`;
 
-  // Limpiar ticket activo
   ticketActivo = null;
   stopCamera();
   actualizarVistaQR();
   actualizarUI();
 
-  alert("¡Salida registrada por la plumilla con éxito! Cobro aplicado.");
+  alert("¡Salida procesada por la plumilla con éxito! Cobro aplicado a tu tarjeta.");
 }
 
+  
 // Control de Cámara Web para Escanear QR físico o simulado
 function toggleCameraScanner() {
   if (cameraActive) {
