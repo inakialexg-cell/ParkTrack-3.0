@@ -129,8 +129,9 @@ function handleRegister(e) {
   // Limpiar formulario y regresar al login
   e.target.reset();
   showAuthView('login');
+}
 
-  // Registro de Usuario vinculado a Supabase
+// Registro real con Supabase Auth (crea el usuario y activa el trigger del perfil)
 async function handleRegister(e) {
   e.preventDefault();
   const name = document.getElementById('regName').value;
@@ -143,50 +144,55 @@ async function handleRegister(e) {
     return;
   }
 
-  // Guardar en la tabla 'usuarios' de Supabase
-  const { data, error } = await _supabase
-    .from('usuarios')
-    .insert([{ nombre: name, email: email, password: pass }]);
+  // Llamada a Supabase Auth
+  const { data, error } = await _supabase.auth.signUp({
+    email: email,
+    password: pass,
+    options: {
+      data: { nombre: name } // Esto lo lee el Trigger SQL para el nombre y saldo en 0
+    }
+  });
 
   if (error) {
-    console.error("Error al registrar en Supabase:", error.message);
-    alert("Hubo un error al registrar la cuenta en la base de datos.");
+    alert("Error al registrarse: " + error.message);
     return;
   }
 
-  alert("¡Cuenta registrada y guardada en Supabase con éxito!");
+  alert("¡Cuenta registrada con éxito en Supabase! Ya puedes iniciar sesión.");
   e.target.reset();
   showAuthView('login');
 }
-}
 
-function handleLogin(e) {
+// Inicio de sesión real con Supabase Auth
+async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value;
   const pass = document.getElementById('loginPassword').value;
 
-  if (email === usuarioActual.email && pass === usuarioActual.password) {
-    document.getElementById('authContainer').classList.add('hidden');
-    document.getElementById('appContainer').classList.remove('hidden');
+  const { data, error } = await _supabase.auth.signInWithPassword({
+    email: email,
+    password: pass
+  });
 
-    const initials = usuarioActual.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    document.getElementById('profileAvatar').innerText = initials || 'PT';
-    document.getElementById('profileName').innerText = usuarioActual.nombre;
-    document.getElementById('profileEmail').innerText = usuarioActual.email;
-    document.getElementById('headerUsuarioNombre').innerText = usuarioActual.nombre;
-    document.getElementById('welcomeUserName').innerText = usuarioActual.nombre.split(' ')[0];
-
-    actualizarUI();
-  } else {
-    alert("Correo o contraseña incorrectos.");
+  if (error) {
+    alert("Correo o contraseña incorrectos: " + error.message);
+    return;
   }
-}
 
-function cerrarSesion() {
-  if (typeof stopCamera === 'function') stopCamera();
-  document.getElementById('appContainer').classList.add('hidden');
-  document.getElementById('authContainer').classList.remove('hidden');
-  showAuthView('bienvenida');
+  // Si el login es exitoso, pasamos a la app principal
+  document.getElementById('authContainer').classList.add('hidden');
+  document.getElementById('appContainer').classList.remove('hidden');
+
+  // Obtener datos del perfil del usuario logueado
+  const user = data.user;
+  const nombreUsuario = user.user_metadata?.nombre || "Usuario";
+
+  document.getElementById('profileName').innerText = nombreUsuario;
+  document.getElementById('profileEmail').innerText = user.email;
+  document.getElementById('headerUsuarioNombre').innerText = nombreUsuario;
+  document.getElementById('welcomeUserName').innerText = nombreUsuario.split(' ')[0];
+
+  actualizarUI();
 }
 
 // Navegación de pestañas
