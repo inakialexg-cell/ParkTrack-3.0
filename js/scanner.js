@@ -1,6 +1,9 @@
 let html5QrCode = null;
 let cameraActive = false;
 
+// Cargar historial guardado en el navegador al iniciar
+window.historialBoletos = JSON.parse(localStorage.getItem('parktrack_historial')) || [];
+
 // Iniciar sección de QR y verificar estado actual
 function initScannerSection() {
   actualizarVistaQR();
@@ -10,7 +13,7 @@ function actualizarVistaQR() {
   const container = document.getElementById('qrStatusContainer');
   if (!container) return;
 
-  // 1. CASO: HAY UNA RESERVACIÓN ACTIVA (Apartado desde recintos - Estilo Arcoíris)
+  // 1. CASO: HAY UNA RESERVACIÓN ACTIVA (Estilo Arcoíris)
   if (typeof reservaActiva !== 'undefined' && reservaActiva) {
     if (reservaActiva.estado === 'RESERVADO') {
       container.innerHTML = `
@@ -56,7 +59,7 @@ function actualizarVistaQR() {
     return;
   }
 
-  // 2. CASO: NO HAY RESERVACIÓN PERO HAY UN TICKET ACTIVO GENERAL
+  // 2. CASO: TICKET ACTIVO GENERAL
   if (ticketActivo) {
     container.innerHTML = `
       <p class="text-xs text-brandGreen font-bold">🚗 Tienes un estacionamiento en curso (Folio: ${ticketActivo.folio})</p>
@@ -78,7 +81,7 @@ function actualizarVistaQR() {
     return;
   }
 
-  // 3. CASO POR DEFECTO: NO HAY NADA (MOSTRAR QR GENERAL DE ENTRADA)
+  // 3. CASO POR DEFECTO: QR GENERAL DE ENTRADA
   container.innerHTML = `
     <p class="text-xs text-slate-400">Genera tu boleto de entrada para acceder al recinto.</p>
     <div class="bg-white p-4 rounded-xl inline-block shadow-inner">
@@ -92,6 +95,22 @@ function actualizarVistaQR() {
   `;
 }
 
+// Función auxiliar para guardar saldo en Supabase y detectar errores
+async function sincronizarSaldoConSupabase(nuevoSaldo) {
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (!user) return;
+
+  const { error } = await _supabase
+    .from('perfiles')
+    .update({ saldo: nuevoSaldo })
+    .eq('id', user.id);
+
+  if (error) {
+    console.error("Error Supabase:", error);
+    alert("⚠️ No se pudo guardar el saldo en Supabase: " + error.message);
+  }
+}
+
 // Simular Entrada de la Reservación
 function simularEntradaReserva() {
   if (!reservaActiva) return;
@@ -102,12 +121,12 @@ function simularEntradaReserva() {
   alert(`¡Entrada registrada al recinto ${reservaActiva.recintoNombre}! Disfrute su estancia.`);
 }
 
-// Simular Salida de la Reservación, Cobro y Limpieza del Apartado
-function simularSalidaReserva() {
+// Simular Salida de la Reservación, Cobro y Guardado
+async function simularSalidaReserva() {
   if (!reservaActiva) return;
 
   if (!tarjetaRegistrada) {
-    alert("⚠️ ACCIÓN DENEGADA: No puedes procesar la salida ni realizar cobros sin tener una tarjeta de crédito registrada en tu perfil.");
+    alert("⚠️ ACCIÓN DENEGADA: No puedes procesar la salida sin tarjeta registrada.");
     switchTab('perfil');
     return;
   }
@@ -123,7 +142,10 @@ function simularSalidaReserva() {
     alert("Saldo insuficiente cubierto con tu tarjeta de crédito vinculada.");
   }
 
-  if (!window.historialBoletos) window.historialBoletos = [];
+  // Guardar saldo en Supabase
+  await sincronizarSaldoConSupabase(saldo);
+
+  // Guardar historial persistente en el navegador
   window.historialBoletos.unshift({
     folio: reservaActiva.folio,
     recinto: reservaActiva.recintoNombre,
@@ -132,6 +154,7 @@ function simularSalidaReserva() {
     costo: costoSimulado,
     estado: "Completado"
   });
+  localStorage.setItem('parktrack_historial', JSON.stringify(window.historialBoletos));
 
   const nombreRecintoCompletado = reservaActiva.recintoNombre;
   reservaActiva = null; 
@@ -161,12 +184,12 @@ function generarBoletoEntrada() {
   actualizarUI();
 }
 
-// Procesar Salida General y Guardar en Historial (Corregido)
-function procesarSalida() {
+// Procesar Salida General y Guardar
+async function procesarSalida() {
   if (!ticketActivo) return;
 
   if (!tarjetaRegistrada) {
-    alert("⚠️ ACCIÓN DENEGADA: No puedes procesar la salida ni realizar cargos sin tener una tarjeta de crédito registrada en tu perfil.");
+    alert("⚠️ ACCIÓN DENEGADA: No puedes procesar la salida sin tarjeta registrada.");
     switchTab('perfil');
     return;
   }
@@ -175,24 +198,26 @@ function procesarSalida() {
   const horaSalidaStr = new Date().toLocaleTimeString();
 
   if (saldo >= costoSimulado) {
-    saldo -= costoSimulado; // Corregido el error tipográfico aquí
+    saldo -= costoSimulado;
   } else {
     deuda += (costoSimulado - saldo);
     saldo = 0;
     alert("Saldo insuficiente cubierto con tu tarjeta de crédito vinculada.");
   }
 
-  const registroHistorial = {
+  // Guardar saldo en Supabase
+  await sincronizarSaldoConSupabase(saldo);
+
+  // Guardar historial persistente
+  window.historialBoletos.unshift({
     folio: ticketActivo.folio,
     recinto: ticketActivo.recinto,
     entrada: ticketActivo.horaEntrada,
     salida: horaSalidaStr,
     costo: costoSimulado,
     estado: "Completado"
-  };
-
-  if (!window.historialBoletos) window.historialBoletos = [];
-  window.historialBoletos.unshift(registroHistorial);
+  });
+  localStorage.setItem('parktrack_historial', JSON.stringify(window.historialBoletos));
 
   ticketActivo = null;
   stopCamera();
@@ -223,7 +248,6 @@ function startCamera() {
     { facingMode: "environment" },
     { fps: 10, qrbox: { width: 200, height: 200 } },
     (decodedText) => {
-      console.log("QR Escaneado:", decodedText);
       if (decodedText.includes("RESERVACION")) {
         simularEntradaReserva();
       } else if (decodedText.includes("SALIDA") || reservaActiva?.estado === 'DENTRO') {
@@ -239,7 +263,6 @@ function startCamera() {
     const btn = document.getElementById('btnToggleCamera');
     if (btn) btn.innerText = "🔴 Apagar Cámara";
   }).catch(err => {
-    console.error("Error al iniciar cámara:", err);
     alert("No se pudo acceder a la cámara.");
   });
 }
@@ -250,108 +273,6 @@ function stopCamera() {
       cameraActive = false;
       const btn = document.getElementById('btnToggleCamera');
       if (btn) btn.innerText = "📷 Encender Cámara para Escanear";
-    }).catch(err => console.error("Error deteniendo cámara:", err));
+    }).catch(err => console.error(err));
   }
-  // Simular Salida de la Reservación, Cobro y Guardado en Supabase
-async function simularSalidaReserva() {
-  if (!reservaActiva) return;
-
-  if (!tarjetaRegistrada) {
-    alert("⚠️ ACCIÓN DENEGADA: No puedes procesar la salida ni realizar cobros sin tener una tarjeta de crédito registrada en tu perfil.");
-    switchTab('perfil');
-    return;
-  }
-
-  const costoSimulado = reservaActiva.tarifa * 1.0; 
-  const horaSalidaStr = new Date().toLocaleTimeString();
-
-  if (saldo >= costoSimulado) {
-    saldo -= costoSimulado;
-  } else {
-    deuda += (costoSimulado - saldo);
-    saldo = 0;
-    alert("Saldo insuficiente cubierto con tu tarjeta de crédito vinculada.");
-  }
-
-  // 🔹 GUARDAR EL NUEVO SALDO EN SUPABASE
-  const { data: { user } } = await _supabase.auth.getUser();
-  if (user) {
-    await _supabase
-      .from('perfiles')
-      .update({ saldo: saldo })
-      .eq('id', user.id);
-  }
-
-  if (!window.historialBoletos) window.historialBoletos = [];
-  window.historialBoletos.unshift({
-    folio: reservaActiva.folio,
-    recinto: reservaActiva.recintoNombre,
-    entrada: reservaActiva.horaEntrada || '12:00',
-    salida: horaSalidaStr,
-    costo: costoSimulado,
-    estado: "Completado"
-  });
-
-  const nombreRecintoCompletado = reservaActiva.recintoNombre;
-  reservaActiva = null; 
-
-  stopCamera();
-  actualizarUI();
-  if (typeof calcularDisponibilidadPorHora === 'function') {
-    calcularDisponibilidadPorHora();
-  }
-  actualizarVistaQR();
-
-  alert(`¡Salida procesada con éxito en ${nombreRecintoCompletado}! Cobro de $${costoSimulado.toFixed(2)} MXN aplicado.`);
-}
-
-// Procesar Salida General y Guardar en Supabase
-async function procesarSalida() {
-  if (!ticketActivo) return;
-
-  if (!tarjetaRegistrada) {
-    alert("⚠️ ACCIÓN DENEGADA: No puedes procesar la salida ni realizar cargos sin tener una tarjeta de crédito registrada en tu perfil.");
-    switchTab('perfil');
-    return;
-  }
-
-  const costoSimulado = 40.00;
-  const horaSalidaStr = new Date().toLocaleTimeString();
-
-  if (saldo >= costoSimulado) {
-    saldo -= costoSimulado;
-  } else {
-    deuda += (costoSimulado - saldo);
-    saldo = 0;
-    alert("Saldo insuficiente cubierto con tu tarjeta de crédito vinculada.");
-  }
-
-  // 🔹 GUARDAR EL NUEVO SALDO EN SUPABASE
-  const { data: { user } } = await _supabase.auth.getUser();
-  if (user) {
-    await _supabase
-      .from('perfiles')
-      .update({ saldo: saldo })
-      .eq('id', user.id);
-  }
-
-  const registroHistorial = {
-    folio: ticketActivo.folio,
-    recinto: ticketActivo.recinto,
-    entrada: ticketActivo.horaEntrada,
-    salida: horaSalidaStr,
-    costo: costoSimulado,
-    estado: "Completado"
-  };
-
-  if (!window.historialBoletos) window.historialBoletos = [];
-  window.historialBoletos.unshift(registroHistorial);
-
-  ticketActivo = null;
-  stopCamera();
-  actualizarVistaQR();
-  actualizarUI();
-
-  alert("¡Salida procesada por la plumilla con éxito! Cobro aplicado a tu tarjeta.");
-}
 }
