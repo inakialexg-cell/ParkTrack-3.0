@@ -1,6 +1,6 @@
 // Inicializar cliente de Supabase
 const supabaseUrl = 'https://jdxtprrjazudmnhljuzw.supabase.co';
-const supabaseKey = 'sb_publishable_xVr79C5kb7yL8ZtToKAUsg_gRxhXPt4'; // Pegar la Publishable Key de Supabase
+const supabaseKey = 'sb_publishable_xVr79C5kb7yL8ZtToKAUsg_gRxhXPt4';
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // Estado Global con Saldo en 0.00 al registrarse
@@ -9,7 +9,7 @@ let deuda = 0.00;
 let ticketActivo = null;
 let tarjetaRegistrada = null; // Guardará la info de la tarjeta activa
 
-// Registro de Usuario vinculado a Supabase
+// 1. REGISTRO REAL CON SUPABASE AUTH (Única versión limpia)
 async function handleRegister(e) {
   e.preventDefault();
   const name = document.getElementById('regName').value;
@@ -22,32 +22,63 @@ async function handleRegister(e) {
     return;
   }
 
-  // Insertar datos en la tabla 'usuarios' de Supabase
-  const { data, error } = await _supabase
-    .from('usuarios')
-    .insert([{ nombre: name, email: email, password: pass }]);
+  // Llamada oficial a Supabase Auth
+  const { data, error } = await _supabase.auth.signUp({
+    email: email,
+    password: pass,
+    options: {
+      data: { nombre: name } // El Trigger SQL lee esto para el nombre y saldo inicial en 0
+    }
+  });
 
   if (error) {
-    console.error("Error al registrar en Supabase:", error.message);
-    alert("Hubo un error al conectar con la base de datos.");
+    alert("Error al registrarse: " + error.message);
     return;
   }
 
-  alert("¡Cuenta registrada y guardada en Supabase con éxito!");
-  e.target.reset();
-  showAuthView('login');
-
-
-  usuarioActual = { nombre: name, email: email, password: pass };
-  saldo = 0.00; // Saldo inicial en cero como se solicitó
-  tarjetaRegistrada = null;
-
-  alert("¡Cuenta creada con éxito! Comienzas con un saldo de $0.00 MXN. Inicia sesión para vincular tu tarjeta.");
+  alert("¡Cuenta registrada con éxito en Supabase! Ya puedes iniciar sesión.");
   e.target.reset();
   showAuthView('login');
 }
 
-// Funciones de Gestión de Tarjeta de Crédito
+// 2. INICIO DE SESIÓN REAL CON SUPABASE AUTH
+async function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const pass = document.getElementById('loginPassword').value;
+
+  const { data, error } = await _supabase.auth.signInWithPassword({
+    email: email,
+    password: pass
+  });
+
+  if (error) {
+    alert("Correo o contraseña incorrectos: " + error.message);
+    return;
+  }
+
+  // Si el login es exitoso, ocultamos auth y abrimos la app principal
+  document.getElementById('authContainer').classList.add('hidden');
+  document.getElementById('appContainer').classList.remove('hidden');
+
+  // Obtener datos del perfil del usuario logueado
+  const user = data.user;
+  const nombreUsuario = user.user_metadata?.nombre || "Usuario";
+
+  document.getElementById('profileName').innerText = nombreUsuario;
+  document.getElementById('profileEmail').innerText = user.email;
+  document.getElementById('headerUsuarioNombre').innerText = nombreUsuario;
+  document.getElementById('welcomeUserName').innerText = nombreUsuario.split(' ')[0];
+
+  actualizarUI();
+
+  // Inicializar el cálculo horario de los recintos de Monterrey
+  if (typeof calcularDisponibilidadPorHora === 'function') {
+    calcularDisponibilidadPorHora();
+  }
+}
+
+// 3. GESTIÓN DE TARJETA DE CRÉDITO
 function registrarTarjeta() {
   const numInput = document.getElementById('inputNumTarjeta').value.trim();
   if (!numInput || numInput.length < 4) {
@@ -55,7 +86,6 @@ function registrarTarjeta() {
     return;
   }
 
-  // Tomar los últimos 4 dígitos por seguridad visual
   const ultimosDigitos = numInput.slice(-4);
   tarjetaRegistrada = `Visa/Mastercard •••• ${ultimosDigitos}`;
 
@@ -64,7 +94,7 @@ function registrarTarjeta() {
 }
 
 function eliminarTarjeta() {
-  if (confirm("¿Estás seguro de eliminar tu tarjeta? Recuerda que no podrás realizar cargos ni salir de los recintos sin una tarjeta activa.")) {
+  if (confirm("¿Estás seguro de eliminar tu tarjeta? Recuerda que es obligatoria para salir de los recintos.")) {
     tarjetaRegistrada = null;
     actualizarUIPerfil();
     alert("Tarjeta eliminada correctamente.");
@@ -93,7 +123,7 @@ function actualizarUIPerfil() {
   }
 }
 
-// Control de vistas Auth
+// 4. CONTROL DE VISTAS AUTH
 function showAuthView(viewName) {
   document.getElementById('viewBienvenida').classList.add('hidden');
   document.getElementById('viewLogin').classList.add('hidden');
@@ -104,98 +134,7 @@ function showAuthView(viewName) {
   if (viewName === 'register') document.getElementById('viewRegister').classList.remove('hidden');
 }
 
-// Registro de Usuario
-function handleRegister(e) {
-  e.preventDefault();
-  const name = document.getElementById('regName').value;
-  const email = document.getElementById('regEmail').value;
-  const pass = document.getElementById('regPassword').value;
-  const confirmPass = document.getElementById('regConfirmPassword').value;
-
-  if (pass !== confirmPass) {
-    alert("Las contraseñas no coinciden.");
-    return;
-  }
-
-  // Actualizar el usuario actual con los datos ingresados
-  usuarioActual = { 
-    nombre: name, 
-    email: email, 
-    password: pass 
-  };
-
-  alert("¡Cuenta registrada con éxito! Por favor, inicia sesión con tus datos.");
-  
-  // Limpiar formulario y regresar al login
-  e.target.reset();
-  showAuthView('login');
-}
-
-// Registro real con Supabase Auth (crea el usuario y activa el trigger del perfil)
-async function handleRegister(e) {
-  e.preventDefault();
-  const name = document.getElementById('regName').value;
-  const email = document.getElementById('regEmail').value;
-  const pass = document.getElementById('regPassword').value;
-  const confirmPass = document.getElementById('regConfirmPassword').value;
-
-  if (pass !== confirmPass) {
-    alert("Las contraseñas no coinciden.");
-    return;
-  }
-
-  // Llamada a Supabase Auth
-  const { data, error } = await _supabase.auth.signUp({
-    email: email,
-    password: pass,
-    options: {
-      data: { nombre: name } // Esto lo lee el Trigger SQL para el nombre y saldo en 0
-    }
-  });
-
-  if (error) {
-    alert("Error al registrarse: " + error.message);
-    return;
-  }
-
-  alert("¡Cuenta registrada con éxito en Supabase! Ya puedes iniciar sesión.");
-  e.target.reset();
-  showAuthView('login');
-}
-
-// Inicio de sesión real con Supabase Auth
-async function handleLogin(e) {
-  e.preventDefault();
-  const email = document.getElementById('loginEmail').value;
-  const pass = document.getElementById('loginPassword').value;
-
-  const { data, error } = await _supabase.auth.signInWithPassword({
-    email: email,
-    password: pass
-  });
-
-  if (error) {
-    alert("Correo o contraseña incorrectos: " + error.message);
-    return;
-  }
-
-  // Si el login es exitoso, pasamos a la app principal
-  document.getElementById('authContainer').classList.add('hidden');
-  document.getElementById('appContainer').classList.remove('hidden');
-
-  // Obtener datos del perfil del usuario logueado
-  const user = data.user;
-  const nombreUsuario = user.user_metadata?.nombre || "Usuario";
-
-  document.getElementById('profileName').innerText = nombreUsuario;
-  document.getElementById('profileEmail').innerText = user.email;
-  document.getElementById('headerUsuarioNombre').innerText = nombreUsuario;
-  document.getElementById('welcomeUserName').innerText = nombreUsuario.split(' ')[0];
-
-  actualizarUI();
-}
-
-// Navegación de pestañas
+// 5. NAVEGACIÓN DE PESTAÑAS
 function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -298,3 +237,13 @@ function renderHistorial() {
 
   container.innerHTML = html;
 }
+
+// ==========================================
+// 6. INTEGRACIÓN CON RECINTOS (Al final de tu app.js)
+// ==========================================
+// Llamada inicial segura por si el script recintos.js ya cargó
+document.addEventListener("DOMContentLoaded", () => {
+  if (typeof calcularDisponibilidadPorHora === 'function') {
+    calcularDisponibilidadPorHora();
+  }
+});

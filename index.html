@@ -163,33 +163,21 @@
         </div>
       </section>
 
-      <!-- 2. RECINTOS Y MAPA -->
+     <!-- 2. RECINTOS Y MAPA -->
       <section id="tab-recintos" class="tab-content hidden space-y-4">
-        <h2 class="text-lg font-bold">Recintos Disponibles</h2>
-        <p class="text-xs text-slate-400">Verifica la disponibilidad antes de llegar.</p>
-
-        <div class="space-y-3">
-          <div class="bg-brandCard p-4 rounded-xl border border-slate-800 flex justify-between items-center">
-            <div><h3 class="font-bold text-sm">Parque Fundidora</h3><span class="text-xs text-slate-400">Monterrey</span></div>
-            <span class="bg-emerald-500/10 text-brandGreen border border-brandGreen/30 text-xs px-2.5 py-1 rounded-full font-bold">● Disponible</span>
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-lg font-bold">Recintos Disponibles</h2>
+            <p class="text-xs text-slate-400">Ocupación actualizada por hora (<span id="horaActualRecintos">--:--</span>).</p>
           </div>
-          <div class="bg-brandCard p-4 rounded-xl border border-slate-800 flex justify-between items-center">
-            <div><h3 class="font-bold text-sm">Estadio Sultanes</h3><span class="text-xs text-slate-400">Monterrey</span></div>
-            <span class="bg-red-500/10 text-brandRed border border-brandRed/30 text-xs px-2.5 py-1 rounded-full font-bold">● Lleno</span>
-          </div>
-          <div class="bg-brandCard p-4 rounded-xl border border-slate-800 flex justify-between items-center">
-            <div><h3 class="font-bold text-sm">Paseo La Fe</h3><span class="text-xs text-slate-400">San Nicolás / Apodaca</span></div>
-            <span class="bg-emerald-500/10 text-brandGreen border border-brandGreen/30 text-xs px-2.5 py-1 rounded-full font-bold">● Disponible</span>
-          </div>
-          <div class="bg-brandCard p-4 rounded-xl border border-slate-800 flex justify-between items-center">
-            <div><h3 class="font-bold text-sm">Estadio UANL</h3><span class="text-xs text-slate-400">San Nicolás</span></div>
-            <span class="bg-red-500/10 text-brandRed border border-brandRed/30 text-xs px-2.5 py-1 rounded-full font-bold">● Lleno</span>
-          </div>
-          <div class="bg-brandCard p-4 rounded-xl border border-slate-800 flex justify-between items-center">
-            <div><h3 class="font-bold text-sm">Galerías Monterrey</h3><span class="text-xs text-slate-400">Monterrey</span></div>
-            <span class="bg-emerald-500/10 text-brandGreen border border-brandGreen/30 text-xs px-2.5 py-1 rounded-full font-bold">● Disponible</span>
-          </div>
+          <!-- Botón opcional para simular el avance de 1 hora en pruebas -->
+          <button onclick="simularCambioHora()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-bold px-2.5 py-1.5 rounded-xl text-brandBlue transition">
+            🕒 +1 Hora
+          </button>
         </div>
+
+        <!-- Contenedor dinámico donde JS dibujará los 5 recintos con su capacidad real -->
+        <div id="listaRecintosContainer" class="space-y-3"></div>
 
         <h3 class="font-bold text-sm pt-2">Ubicaciones en Mapa</h3>
         <div id="map" class="w-full h-64 rounded-2xl border border-slate-800 z-10"></div>
