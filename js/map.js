@@ -2,23 +2,48 @@ let map = null;
 let markersLayer = null;
 
 function initMap() {
-  // Si el mapa ya está creado, solo actualizamos los marcadores
-  if (!map) {
-    // Coordenadas centradas en Monterrey
-    map = L.map('mapContainer').setView([25.6866, -100.3161], 11);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
+  // Buscar el contenedor del mapa (soporta 'mapContainer' o 'map' por si acaso)
+  const container = document.getElementById('mapContainer') || document.getElementById('map');
+  if (!container) return;
 
-    markersLayer = L.layerGroup().addTo(map);
+  // Asegurar que el contenedor tenga altura mínima visible para Leaflet
+  if (!container.style.height) {
+    container.style.height = '280px';
   }
 
-  actualizarMarcadoresMapa();
+  // Si el mapa ya está creado, solo recalculamos su tamaño y actualizamos pines
+  if (map) {
+    setTimeout(() => {
+      map.invalidateSize();
+      actualizarMarcadoresMapa();
+    }, 150);
+    return;
+  }
+
+  // Coordenadas centradas en Monterrey
+  map = L.map(container.id).setView([25.6866, -100.3161], 11);
+  
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  markersLayer = L.layerGroup().addTo(map);
+
+  // Forzar el renderizado correcto de los mosaicos del mapa tras mostrar la vista
+  setTimeout(() => {
+    map.invalidateSize();
+    actualizarMarcadoresMapa();
+  }, 200);
 }
 
 function actualizarMarcadoresMapa() {
+  // Si el mapa aún no se ha inicializado pero ya existen datos, lo iniciamos primero
+  if (!map) {
+    initMap();
+    return;
+  }
+
   if (!markersLayer) return;
   markersLayer.clearLayers(); // Limpiar pines anteriores
 
@@ -26,7 +51,7 @@ function actualizarMarcadoresMapa() {
   if (typeof recintosData === 'undefined' || recintosData.length === 0) return;
 
   recintosData.forEach(r => {
-    // Definir coordenadas geográficas aproximadas para cada recinto de Monterrey
+    // Coordenadas geográficas exactas para cada recinto de Monterrey
     let coords = [25.6866, -100.3161]; // Default Monterrey centro
     if (r.id === 'fundidora') coords = [25.6778, -100.2845];
     if (r.id === 'sultanes') coords = [25.7175, -100.3442];
@@ -44,7 +69,7 @@ function actualizarMarcadoresMapa() {
       colorPin = '#ff5c6c'; // Rojo (Lleno)
       textoEstado = 'Lleno';
     } else if (porcentajeLibre <= 15) {
-      colorPin = '#ffb84d'; // Amarillo/Ambar (Casi lleno)
+      colorPin = '#ffb84d'; // Amarillo/Ámbar (Casi lleno)
       textoEstado = `Casi lleno (${r.libres})`;
     }
 
@@ -52,7 +77,7 @@ function actualizarMarcadoresMapa() {
     const marker = L.circleMarker(coords, {
       radius: 10,
       fillColor: colorPin,
-      color: '#fff',
+      color: '#ffffff',
       weight: 2,
       opacity: 1,
       fillOpacity: 0.9
@@ -60,13 +85,18 @@ function actualizarMarcadoresMapa() {
 
     // Pop-up informativo sincronizado
     marker.bindPopup(`
-      <div style="color: #000; font-family: sans-serif;">
-        <b>${r.nombre}</b><br>
-        Estado: <span style="font-weight: bold; color: ${colorPin};">${textoEstado}</span><br>
-        Tarifa: $${r.tarifa}/hr
+      <div style="font-family: 'Outfit', sans-serif; padding: 2px;">
+        <b style="font-size: 13px;">${r.nombre}</b><br>
+        <span style="font-size: 12px;">Estado: <b style="color: ${colorPin};">${textoEstado}</b></span><br>
+        <span style="font-size: 11px; color: #94a3b8;">Tarifa: $${r.tarifa}/hr</span>
       </div>
     `);
 
     markersLayer.addLayer(marker);
   });
 }
+
+// Inicializar automáticamente cuando el DOM esté listo
+document.addEventListener("DOMContentLoaded", () => {
+  initMap();
+});
