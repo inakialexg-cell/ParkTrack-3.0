@@ -118,7 +118,7 @@ function renderRecintos() {
         </div>
 
       ${r.libres > 0 || esMiReserva ? `
-          <button onclick="${esMiReserva ? "switchTab('escaneo')" : `apartarLugar('${r.id}')`}" 
+          <button onclick="${esMiReserva ? "switchTab('escaneo'); if(typeof actualizarVistaQR === 'function') actualizarVistaQR();" : `apartarLugar('${r.id}')`}" 
             class="w-full py-2 rounded-xl text-xs font-bold transition active:scale-98 ${
               esMiReserva 
                 ? 'bg-brandBlue/20 text-brandBlue border border-brandBlue/40 cursor-pointer hover:bg-brandBlue/30' 
