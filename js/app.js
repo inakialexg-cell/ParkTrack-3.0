@@ -8,6 +8,7 @@ let saldo = 0.00;
 let deuda = 0.00;
 let ticketActivo = null;
 let tarjetaRegistrada = null; // Guardará la info de la tarjeta activa
+let reservaActiva = null; // Controla la reservación exclusiva / burbuja arcoíris
 
 // 1. REGISTRO REAL CON SUPABASE AUTH (Única versión limpia)
 async function handleRegister(e) {
@@ -184,7 +185,7 @@ function showAuthView(viewName) {
   if (viewName === 'register') document.getElementById('viewRegister').classList.remove('hidden');
 }
 
-// 6. ACTUALIZAR PANTALLA DE PASE QR (Burbuja exclusiva de reservación)
+// 6. ACTUALIZAR PANTALLA DE PASE QR (Burbuja exclusiva Arcoíris)
 function actualizarVistaQR() {
   const qrImg = document.getElementById('qrImage');
   const qrInst = document.getElementById('qrInstruction');
@@ -203,35 +204,41 @@ function actualizarVistaQR() {
 
   if (reservaActiva.estado === 'RESERVADO') {
     qrInst.innerHTML = `
-      <div class="bg-gradient-to-r from-blue-900/40 to-brandBlue/20 border-2 border-brandBlue p-3.5 rounded-2xl mb-3 shadow-lg text-left space-y-1">
-        <div class="flex justify-between items-center">
-          <span class="bg-brandBlue text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">🅿️ Reservación Exclusiva</span>
-          <span class="text-xs text-brandBlue font-bold">${reservaActiva.folio}</span>
+      <div class="bg-slate-900/90 border-2 border-transparent bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 p-[2px] rounded-2xl mb-3 shadow-xl">
+        <div class="bg-slate-950 p-3 rounded-2xl text-left space-y-1">
+          <div class="flex justify-between items-center">
+            <span class="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow">🌈 Reservación Arcoíris</span>
+            <span class="text-xs text-pink-400 font-bold">${reservaActiva.folio}</span>
+          </div>
+          <p class="text-sm font-bold text-white pt-1">🏟️ Recinto: ${reservaActiva.recintoNombre}</p>
+          <p class="text-[11px] text-slate-300">Cajón apartado con anticipación ($${reservaActiva.tarifa}/hr)</p>
         </div>
-        <p class="text-sm font-bold text-white pt-1">${reservaActiva.recintoNombre}</p>
-        <p class="text-[11px] text-slate-300">Cajón apartado con anticipación. Tarifa: $${reservaActiva.tarifa}/hr</p>
       </div>
-      <span class="text-brandGreen font-bold text-xs block text-center">📱 Escanea este código al llegar para validar tu acceso reservado.</span>
+      <span class="text-brandGreen font-bold text-xs block text-center">📱 Escanea este código al llegar para validar tu acceso exclusivo.</span>
     `;
-    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=ENTRADA-${reservaActiva.folio}-${reservaActiva.recintoId}`;
+    
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&color=9333ea&bgcolor=ffffff&data=RESERVACION-ARCOIRIS-${reservaActiva.folio}-${reservaActiva.recintoId}`;
+    
     if (btnEntrada) {
-      btnEntrada.innerText = `Registrar Entrada (Llegué al Recinto) 🚗`;
+      btnEntrada.innerText = `Registrar Entrada al Recinto 🚗`;
       btnEntrada.classList.remove('hidden');
     }
     if (btnSalida) btnSalida.classList.add('hidden');
+
   } else if (reservaActiva.estado === 'DENTRO') {
     qrInst.innerHTML = `
-      <div class="bg-gradient-to-r from-amber-900/40 to-amber-600/20 border-2 border-amber-500 p-3.5 rounded-2xl mb-3 shadow-lg text-left space-y-1">
+      <div class="bg-gradient-to-r from-amber-950/60 to-amber-900/30 border-2 border-amber-500 p-3.5 rounded-2xl mb-3 shadow-lg text-left space-y-1">
         <div class="flex justify-between items-center">
-          <span class="bg-amber-500 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">🚗 Estancia en Curso</span>
+          <span class="bg-amber-500 text-slate-950 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">🚗 Estancia Activa</span>
           <span class="text-xs text-amber-400 font-bold">${reservaActiva.folio}</span>
         </div>
-        <p class="text-sm font-bold text-white pt-1">${reservaActiva.recintoNombre}</p>
+        <p class="text-sm font-bold text-white pt-1">🏟️ Recinto: ${reservaActiva.recintoNombre}</p>
         <p class="text-[11px] text-slate-300">Entrada registrada a las: ${reservaActiva.horaEntrada}</p>
       </div>
-      <span class="text-amber-400 font-bold text-xs block text-center">🏁 Escanea este segundo código al salir para calcular tu cobro.</span>
+      <span class="text-amber-400 font-bold text-xs block text-center">🏁 Escanea este segundo código al salir para procesar tu cobro.</span>
     `;
     qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=SALIDA-${reservaActiva.folio}-${reservaActiva.recintoId}`;
+    
     if (btnEntrada) btnEntrada.classList.add('hidden');
     if (btnSalida) {
       btnSalida.innerText = `Registrar Salida y Pagar 💳`;
@@ -240,7 +247,51 @@ function actualizarVistaQR() {
   }
 }
 
-// 7. NAVEGACIÓN DE PESTAÑAS
+// 7. SIMULAR ENTRADA Y SALIDA DE LA RESERVACIÓN
+function simularEntradaReserva() {
+  if (!reservaActiva) return;
+  const ahora = new Date();
+  reservaActiva.estado = 'DENTRO';
+  reservaActiva.horaEntrada = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+  actualizarVistaQR();
+  alert(`¡Entrada registrada al recinto ${reservaActiva.recintoNombre}! Disfrute su estancia.`);
+}
+
+function simularSalidaReserva() {
+  if (!reservaActiva) return;
+  
+  // Calcular costo simulado (ejemplo: 1 hora o tarifa fija de estancia)
+  const costoTotal = reservaActiva.tarifa * 1; 
+
+  if (saldo >= costoTotal) {
+    saldo -= costoTotal;
+    alert(`¡Salida registrada con éxito! Se han cobrado $${costoTotal.toFixed(2)} MXN de su saldo.`);
+  } else {
+    deuda += costoTotal;
+    alert(`Saldo insuficiente. Se ha generado un adeudo de $${costoTotal.toFixed(2)} MXN a su cuenta.`);
+  }
+
+  // Registrar en historial local
+  if (!window.historialBoletos) window.historialBoletos = [];
+  window.historialBoletos.unshift({
+    folio: reservaActiva.folio,
+    recinto: reservaActiva.recintoNombre,
+    entrada: reservaActiva.horaEntrada || '12:00',
+    salida: 'Ahora',
+    costo: costoTotal
+  });
+
+  // LIMPIAR LA RESERVACIÓN Y LIBERAR EL ESPACIO DEL RECINTO
+  reservaActiva = null; 
+
+  actualizarUI();
+  if (typeof calcularDisponibilidadPorHora === 'function') {
+    calcularDisponibilidadPorHora(); // Recalcula recintos y libera el cajón
+  }
+  actualizarVistaQR();
+}
+
+// 8. NAVEGACIÓN DE PESTAÑAS
 function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -284,7 +335,7 @@ function actualizarUI() {
   renderHistorial();
 }
 
-// 8. RECARGAR SALDO (Sincronizado con Supabase)
+// 9. RECARGAR SALDO (Sincronizado con Supabase)
 async function recargarSaldo() {
   const montoInput = document.getElementById('montoRecarga');
   const monto = parseFloat(montoInput.value);
@@ -345,7 +396,7 @@ function renderHistorial() {
       html += `
         <div class="bg-brandCard p-4 rounded-xl border border-slate-800 text-xs space-y-1">
           <div class="flex justify-between font-bold text-white">
-            <span>Boleto ${b.folio}</span>
+            <span>Boleto ${b.folio} (${b.recinto || 'General'})</span>
             <span class="text-brandBlue">$${b.costo.toFixed(2)} MXN</span>
           </div>
           <p class="text-slate-400">Entrada: ${b.entrada} | Salida: ${b.salida}</p>
@@ -363,10 +414,17 @@ function renderHistorial() {
 }
 
 // ==========================================
-// 9. INTEGRACIÓN CON RECINTOS (Al final de tu app.js)
+// 10. INTEGRACIÓN CON RECINTOS (Al final de tu app.js)
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
   if (typeof calcularDisponibilidadPorHora === 'function') {
     calcularDisponibilidadPorHora();
   }
+  
+  // Asignar eventos a los botones de simulación QR si existen en el DOM
+  const btnEntrada = document.getElementById('btnSimularEntrada');
+  const btnSalida = document.getElementById('btnSimularSalida');
+  
+  if (btnEntrada) btnEntrada.onclick = simularEntradaReserva;
+  if (btnSalida) btnSalida.onclick = simularSalidaReserva;
 });
