@@ -21,7 +21,13 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; margin: 0; }
+
+html, body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
 body {
   font-family: var(--font);
   color: var(--text);
@@ -31,8 +37,10 @@ body {
     #04070f;
   display: grid;
   place-items: center;
-  overflow: hidden;
+  overflow-y: auto; /* Permitir scroll vertical en móviles */
+  -webkit-overflow-scrolling: touch;
 }
+
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; }
 h1, h2, h3, p { margin: 0; }
@@ -43,15 +51,17 @@ h1, h2, h3, p { margin: 0; }
   position: relative;
   width: 100%;
   max-width: 430px;
-  height: 100dvh;
+  min-height: 100dvh; /* Crece de manera natural según el contenido en móviles */
   background: var(--bg);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible; /* Permite que el contenido fluya y active el scroll de la página */
 }
+
 @media (min-width: 520px) and (min-height: 740px) {
   #phone {
     height: min(880px, calc(100dvh - 40px));
+    overflow: hidden; /* Mantiene el scroll interno simulando la carcasa de teléfono en PC */
     border-radius: 44px;
     box-shadow: 0 0 0 9px #0a0f1c, 0 0 0 10px rgba(255, 255, 255, .09), 0 50px 120px rgba(0, 0, 0, .65);
   }
