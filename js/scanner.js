@@ -112,7 +112,7 @@ function simularSalidaReserva() {
     return;
   }
 
-  const costoSimulado = reservaActiva.tarifa * 1.0; // 1 hora simulada o tarifa base
+  const costoSimulado = reservaActiva.tarifa * 1.0; 
   const horaSalidaStr = new Date().toLocaleTimeString();
 
   if (saldo >= costoSimulado) {
@@ -123,7 +123,6 @@ function simularSalidaReserva() {
     alert("Saldo insuficiente cubierto con tu tarjeta de crédito vinculada.");
   }
 
-  // Registrar en historial local
   if (!window.historialBoletos) window.historialBoletos = [];
   window.historialBoletos.unshift({
     folio: reservaActiva.folio,
@@ -135,14 +134,12 @@ function simularSalidaReserva() {
   });
 
   const nombreRecintoCompletado = reservaActiva.recintoNombre;
-
-  // LIMPIAR LA RESERVACIÓN Y LIBERAR EL ESPACIO DEL RECINTO
   reservaActiva = null; 
 
   stopCamera();
   actualizarUI();
   if (typeof calcularDisponibilidadPorHora === 'function') {
-    calcularDisponibilidadPorHora(); // Libera el cajón y actualiza recintos
+    calcularDisponibilidadPorHora();
   }
   actualizarVistaQR();
 
@@ -164,7 +161,7 @@ function generarBoletoEntrada() {
   actualizarUI();
 }
 
-// Procesar Salida General y Guardar en Historial
+// Procesar Salida General y Guardar en Historial (Corregido)
 function procesarSalida() {
   if (!ticketActivo) return;
 
@@ -178,7 +175,7 @@ function procesarSalida() {
   const horaSalidaStr = new Date().toLocaleTimeString();
 
   if (saldo >= costoSimulado) {
-    saldo -= costoSimualdo || costoSimulado;
+    saldo -= costoSimulado; // Corregido el error tipográfico aquí
   } else {
     deuda += (costoSimulado - saldo);
     saldo = 0;
