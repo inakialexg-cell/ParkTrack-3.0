@@ -252,4 +252,106 @@ function stopCamera() {
       if (btn) btn.innerText = "📷 Encender Cámara para Escanear";
     }).catch(err => console.error("Error deteniendo cámara:", err));
   }
+  // Simular Salida de la Reservación, Cobro y Guardado en Supabase
+async function simularSalidaReserva() {
+  if (!reservaActiva) return;
+
+  if (!tarjetaRegistrada) {
+    alert("⚠️ ACCIÓN DENEGADA: No puedes procesar la salida ni realizar cobros sin tener una tarjeta de crédito registrada en tu perfil.");
+    switchTab('perfil');
+    return;
+  }
+
+  const costoSimulado = reservaActiva.tarifa * 1.0; 
+  const horaSalidaStr = new Date().toLocaleTimeString();
+
+  if (saldo >= costoSimulado) {
+    saldo -= costoSimulado;
+  } else {
+    deuda += (costoSimulado - saldo);
+    saldo = 0;
+    alert("Saldo insuficiente cubierto con tu tarjeta de crédito vinculada.");
+  }
+
+  // 🔹 GUARDAR EL NUEVO SALDO EN SUPABASE
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (user) {
+    await _supabase
+      .from('perfiles')
+      .update({ saldo: saldo })
+      .eq('id', user.id);
+  }
+
+  if (!window.historialBoletos) window.historialBoletos = [];
+  window.historialBoletos.unshift({
+    folio: reservaActiva.folio,
+    recinto: reservaActiva.recintoNombre,
+    entrada: reservaActiva.horaEntrada || '12:00',
+    salida: horaSalidaStr,
+    costo: costoSimulado,
+    estado: "Completado"
+  });
+
+  const nombreRecintoCompletado = reservaActiva.recintoNombre;
+  reservaActiva = null; 
+
+  stopCamera();
+  actualizarUI();
+  if (typeof calcularDisponibilidadPorHora === 'function') {
+    calcularDisponibilidadPorHora();
+  }
+  actualizarVistaQR();
+
+  alert(`¡Salida procesada con éxito en ${nombreRecintoCompletado}! Cobro de $${costoSimulado.toFixed(2)} MXN aplicado.`);
+}
+
+// Procesar Salida General y Guardar en Supabase
+async function procesarSalida() {
+  if (!ticketActivo) return;
+
+  if (!tarjetaRegistrada) {
+    alert("⚠️ ACCIÓN DENEGADA: No puedes procesar la salida ni realizar cargos sin tener una tarjeta de crédito registrada en tu perfil.");
+    switchTab('perfil');
+    return;
+  }
+
+  const costoSimulado = 40.00;
+  const horaSalidaStr = new Date().toLocaleTimeString();
+
+  if (saldo >= costoSimulado) {
+    saldo -= costoSimulado;
+  } else {
+    deuda += (costoSimulado - saldo);
+    saldo = 0;
+    alert("Saldo insuficiente cubierto con tu tarjeta de crédito vinculada.");
+  }
+
+  // 🔹 GUARDAR EL NUEVO SALDO EN SUPABASE
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (user) {
+    await _supabase
+      .from('perfiles')
+      .update({ saldo: saldo })
+      .eq('id', user.id);
+  }
+
+  const registroHistorial = {
+    folio: ticketActivo.folio,
+    recinto: ticketActivo.recinto,
+    entrada: ticketActivo.horaEntrada,
+    salida: horaSalidaStr,
+    costo: costoSimulado,
+    estado: "Completado"
+  };
+
+  if (!window.historialBoletos) window.historialBoletos = [];
+  window.historialBoletos.unshift(registroHistorial);
+
+  ticketActivo = null;
+  stopCamera();
+  actualizarVistaQR();
+  actualizarUI();
+
+  alert("¡Salida procesada por la plumilla con éxito! Cobro aplicado a tu tarjeta.");
+}
 }
