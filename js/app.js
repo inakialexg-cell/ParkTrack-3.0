@@ -41,7 +41,7 @@ async function handleRegister(e) {
   showAuthView('login');
 }
 
-// 2. INICIO DE SESIÓN REAL CON SUPABASE AUTH
+// 2. INICIO DE SESIÓN REAL CON SUPABASE AUTH Y CARGA DE PERFIL
 async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value;
@@ -71,6 +71,9 @@ async function handleLogin(e) {
   document.getElementById('welcomeUserName').innerText = nombreUsuario.split(' ')[0];
 
   actualizarUI();
+  
+  // Cargar datos reales vinculados en Supabase (Saldo y Tarjeta)
+  await cargarDatosPerfilSupabase();
 
   // Inicializar el cálculo horario de los recintos de Monterrey
   if (typeof calcularDisponibilidadPorHora === 'function') {
@@ -78,8 +81,31 @@ async function handleLogin(e) {
   }
 }
 
-// 3. GESTIÓN DE TARJETA DE CRÉDITO
-function registrarTarjeta() {
+// 3. CARGAR DATOS DEL PERFIL DESDE SUPABASE
+async function cargarDatosPerfilSupabase() {
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (!user) return;
+
+  const { data, error } = await _supabase
+    .from('perfiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (data) {
+    saldo = data.saldo !== null ? parseFloat(data.saldo) : 0.00;
+    if (data.tarjeta_ultimos_digitos) {
+      tarjetaRegistrada = `Visa/Mastercard •••• ${data.tarjeta_ultimos_digitos}`;
+    } else {
+      tarjetaRegistrada = null;
+    }
+    actualizarUI();
+    actualizarUIPerfil();
+  }
+}
+
+// 4. GESTIÓN DE TARJETA DE CRÉDITO (Vinculada a Supabase)
+async function registrarTarjeta() {
   const numInput = document.getElementById('inputNumTarjeta').value.trim();
   if (!numInput || numInput.length < 4) {
     alert("Ingresa un número de tarjeta válido.");
@@ -87,14 +113,36 @@ function registrarTarjeta() {
   }
 
   const ultimosDigitos = numInput.slice(-4);
-  tarjetaRegistrada = `Visa/Mastercard •••• ${ultimosDigitos}`;
+  const { data: { user } } = await _supabase.auth.getUser();
 
+  if (user) {
+    const { error } = await _supabase
+      .from('perfiles')
+      .update({ tarjeta_ultimos_digitos: ultimosDigitos })
+      .eq('id', user.id);
+
+    if (error) {
+      alert("Error al guardar la tarjeta en la base de datos: " + error.message);
+      return;
+    }
+  }
+
+  tarjetaRegistrada = `Visa/Mastercard •••• ${ultimosDigitos}`;
   actualizarUIPerfil();
-  alert("¡Tarjeta de crédito vinculada con éxito!");
+  alert("¡Tarjeta de crédito vinculada y guardada en Supabase con éxito!");
 }
 
-function eliminarTarjeta() {
+async function eliminarTarjeta() {
   if (confirm("¿Estás seguro de eliminar tu tarjeta? Recuerda que es obligatoria para salir de los recintos.")) {
+    const { data: { user } } = await _supabase.auth.getUser();
+
+    if (user) {
+      await _supabase
+        .from('perfiles')
+        .update({ tarjeta_ultimos_digitos: null })
+        .eq('id', user.id);
+    }
+
     tarjetaRegistrada = null;
     actualizarUIPerfil();
     alert("Tarjeta eliminada correctamente.");
@@ -106,6 +154,8 @@ function actualizarUIPerfil() {
   const infoContainer = document.getElementById('tarjetaInfoContainer');
   const formCard = document.getElementById('formAgregarTarjeta');
   const btnDelete = document.getElementById('btnEliminarTarjeta');
+
+  if (!badge || !infoContainer) return;
 
   if (tarjetaRegistrada) {
     badge.innerText = "ACTIVA";
@@ -123,7 +173,7 @@ function actualizarUIPerfil() {
   }
 }
 
-// 4. CONTROL DE VISTAS AUTH
+// 5. CONTROL DE VISTAS AUTH
 function showAuthView(viewName) {
   document.getElementById('viewBienvenida').classList.add('hidden');
   document.getElementById('viewLogin').classList.add('hidden');
@@ -134,7 +184,7 @@ function showAuthView(viewName) {
   if (viewName === 'register') document.getElementById('viewRegister').classList.remove('hidden');
 }
 
-// Actualizar la pantalla de Pase QR con la burbuja del lugar apartado
+// 6. ACTUALIZAR PANTALLA DE PASE QR (Burbuja exclusiva de reservación)
 function actualizarVistaQR() {
   const qrImg = document.getElementById('qrImage');
   const qrInst = document.getElementById('qrInstruction');
@@ -152,40 +202,45 @@ function actualizarVistaQR() {
   }
 
   if (reservaActiva.estado === 'RESERVADO') {
-    // BURBUJA / QR 1: ENTRADA AL RECINTO APARTADO
     qrInst.innerHTML = `
-      <div class="bg-brandBlue/10 border border-brandBlue/30 p-2.5 rounded-xl mb-2 text-center">
-        <span class="text-brandBlue font-bold text-xs">🅿️ LUGAR APARTADO</span><br>
-        <span class="text-white font-semibold text-xs">${reservaActiva.recintoNombre}</span><br>
-        <span class="text-[10px] text-slate-400">Folio: ${reservaActiva.folio}</span>
+      <div class="bg-gradient-to-r from-blue-900/40 to-brandBlue/20 border-2 border-brandBlue p-3.5 rounded-2xl mb-3 shadow-lg text-left space-y-1">
+        <div class="flex justify-between items-center">
+          <span class="bg-brandBlue text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">🅿️ Reservación Exclusiva</span>
+          <span class="text-xs text-brandBlue font-bold">${reservaActiva.folio}</span>
+        </div>
+        <p class="text-sm font-bold text-white pt-1">${reservaActiva.recintoNombre}</p>
+        <p class="text-[11px] text-slate-300">Cajón apartado con anticipación. Tarifa: $${reservaActiva.tarifa}/hr</p>
       </div>
-      <span class="text-brandGreen font-bold text-xs">Escanea este código al LLEGAR para registrar tu ENTRADA.</span>
+      <span class="text-brandGreen font-bold text-xs block text-center">📱 Escanea este código al llegar para validar tu acceso reservado.</span>
     `;
     qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=ENTRADA-${reservaActiva.folio}-${reservaActiva.recintoId}`;
     if (btnEntrada) {
-      btnEntrada.innerText = `Simular Llegada / ENTRADA 🚗`;
+      btnEntrada.innerText = `Registrar Entrada (Llegué al Recinto) 🚗`;
       btnEntrada.classList.remove('hidden');
     }
     if (btnSalida) btnSalida.classList.add('hidden');
   } else if (reservaActiva.estado === 'DENTRO') {
-    // BURBUJA / QR 2: SALIDA Y COBRO AUTOMÁTICO
     qrInst.innerHTML = `
-      <div class="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl mb-2 text-center">
-        <span class="text-amber-400 font-bold text-xs">🚗 ESTANCIA ACTIVA</span><br>
-        <span class="text-white font-semibold text-xs">${reservaActiva.recintoNombre}</span><br>
-        <span class="text-[10px] text-slate-400">Entrada: ${reservaActiva.horaEntrada}</span>
+      <div class="bg-gradient-to-r from-amber-900/40 to-amber-600/20 border-2 border-amber-500 p-3.5 rounded-2xl mb-3 shadow-lg text-left space-y-1">
+        <div class="flex justify-between items-center">
+          <span class="bg-amber-500 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">🚗 Estancia en Curso</span>
+          <span class="text-xs text-amber-400 font-bold">${reservaActiva.folio}</span>
+        </div>
+        <p class="text-sm font-bold text-white pt-1">${reservaActiva.recintoNombre}</p>
+        <p class="text-[11px] text-slate-300">Entrada registrada a las: ${reservaActiva.horaEntrada}</p>
       </div>
-      <span class="text-amber-400 font-bold text-xs">Escanea este segundo código al SALIR para procesar el cobro.</span>
+      <span class="text-amber-400 font-bold text-xs block text-center">🏁 Escanea este segundo código al salir para calcular tu cobro.</span>
     `;
     qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=SALIDA-${reservaActiva.folio}-${reservaActiva.recintoId}`;
     if (btnEntrada) btnEntrada.classList.add('hidden');
     if (btnSalida) {
-      btnSalida.innerText = `Simular SALIDA y Pagar 🏁`;
+      btnSalida.innerText = `Registrar Salida y Pagar 💳`;
       btnSalida.classList.remove('hidden');
     }
   }
 }
-// 5. NAVEGACIÓN DE PESTAÑAS
+
+// 7. NAVEGACIÓN DE PESTAÑAS
 function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -214,18 +269,23 @@ function switchTab(tabId) {
 }
 
 function actualizarUI() {
-  document.getElementById('saldoHeader').innerText = `$${saldo.toFixed(2)} MXN`;
+  const elementoSaldo = document.getElementById('saldoHeader');
+  if (elementoSaldo) elementoSaldo.innerText = `$${saldo.toFixed(2)} MXN`;
+  
   const alertaDeuda = document.getElementById('alertaDeuda');
-  if (deuda > 0) {
-    alertaDeuda.classList.remove('hidden');
-    document.getElementById('montoDeuda').innerText = `$${deuda.toFixed(2)} MXN`;
-  } else {
-    alertaDeuda.classList.add('hidden');
+  if (alertaDeuda) {
+    if (deuda > 0) {
+      alertaDeuda.classList.remove('hidden');
+      document.getElementById('montoDeuda').innerText = `$${deuda.toFixed(2)} MXN`;
+    } else {
+      alertaDeuda.classList.add('hidden');
+    }
   }
   renderHistorial();
 }
 
-function recargarSaldo() {
+// 8. RECARGAR SALDO (Sincronizado con Supabase)
+async function recargarSaldo() {
   const montoInput = document.getElementById('montoRecarga');
   const monto = parseFloat(montoInput.value);
   if (isNaN(monto) || monto <= 0) {
@@ -245,9 +305,22 @@ function recargarSaldo() {
     }
   }
 
+  const { data: { user } } = await _supabase.auth.getUser();
+  if (user) {
+    const { error } = await _supabase
+      .from('perfiles')
+      .update({ saldo: saldo })
+      .eq('id', user.id);
+
+    if (error) {
+      alert("Error al actualizar el saldo en la base de datos.");
+      return;
+    }
+  }
+
   montoInput.value = '';
   actualizarUI();
-  alert(`Recarga realizada. Saldo actual: $${saldo.toFixed(2)} MXN`);
+  alert(`Recarga realizada y guardada. Saldo actual: $${saldo.toFixed(2)} MXN`);
 }
 
 function renderHistorial() {
@@ -290,9 +363,8 @@ function renderHistorial() {
 }
 
 // ==========================================
-// 6. INTEGRACIÓN CON RECINTOS (Al final de tu app.js)
+// 9. INTEGRACIÓN CON RECINTOS (Al final de tu app.js)
 // ==========================================
-// Llamada inicial segura por si el script recintos.js ya cargó
 document.addEventListener("DOMContentLoaded", () => {
   if (typeof calcularDisponibilidadPorHora === 'function') {
     calcularDisponibilidadPorHora();
