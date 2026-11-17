@@ -117,17 +117,14 @@ function renderRecintos() {
           <div class="${colorBarra} h-full transition-all duration-300" style="width: ${porcentajeOcupado}%"></div>
         </div>
 
-        ${r.libres > 0 || esMiReserva ? `
-          <button onclick="apartarLugar('${r.id}')" 
-            ${typeof reservaActiva !== 'undefined' && reservaActiva ? 'disabled' : ''}
+      ${r.libres > 0 || esMiReserva ? `
+          <button onclick="${esMiReserva ? "switchTab('escaneo')" : `apartarLugar('${r.id}')`}" 
             class="w-full py-2 rounded-xl text-xs font-bold transition active:scale-98 ${
               esMiReserva 
-                ? 'bg-brandBlue/20 text-brandBlue border border-brandBlue/40' 
-                : typeof reservaActiva !== 'undefined' && reservaActiva 
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
-                  : 'bg-brandGreen hover:bg-emerald-600 text-brandDark shadow-md'
+                ? 'bg-brandBlue/20 text-brandBlue border border-brandBlue/40 cursor-pointer hover:bg-brandBlue/30' 
+                : 'bg-brandGreen hover:bg-emerald-600 text-brandDark shadow-md'
             }">
-            ${esMiReserva ? '✓ Lugar Apartado (Ver Burbuja QR)' : typeof reservaActiva !== 'undefined' && reservaActiva ? 'Ya tienes un lugar activo' : '🅿️ Apartar 1 Cajón'}
+            ${esMiReserva ? '✓ Lugar Apartado (Ver Burbuja QR)' : '🅿️ Apartar 1 Cajón'}
           </button>
         ` : ''}
       </div>
