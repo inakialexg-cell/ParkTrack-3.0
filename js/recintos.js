@@ -8,18 +8,17 @@ const recintosBase = [
 ];
 
 let recintosData = [];
-let horaSimuladaOffset = 0; // Controla el desfase de hora con los botones
+let horaSimuladaOffset = 0; 
 
-// Función para subir o bajar la hora (-1 o +1)
+// Función para subir o bajar la hora desde los botones flotantes
 function cambiarHora(cantidad) {
   horaSimuladaOffset += cantidad;
   calcularDisponibilidadPorHora();
 }
 
-// Calcula cuántos lugares libres hay según la hora simulada
+// Calcula la disponibilidad según la hora simulada
 function calcularDisponibilidadPorHora() {
   const ahora = new Date();
-  // Calcula la hora cíclica entre 0 y 23
   let hora = (ahora.getHours() + horaSimuladaOffset) % 24;
   if (hora < 0) hora += 24;
   
@@ -29,7 +28,7 @@ function calcularDisponibilidadPorHora() {
   }
 
   recintosData = recintosBase.map(r => {
-    let factorOcupacion = 0.25; // Madrugada
+    let factorOcupacion = 0.25; 
 
     if (r.tipo === 'plaza') {
       if (hora >= 13 && hora <= 20) factorOcupacion = 0.88;
@@ -39,7 +38,7 @@ function calcularDisponibilidadPorHora() {
       if (hora >= 16 && hora <= 21) factorOcupacion = 0.82;
       else if (hora >= 9 && hora < 16) factorOcupacion = 0.45;
     } else if (r.tipo === 'estadio') {
-      if (hora >= 19 && hora <= 23) factorOcupacion = 1.0; // Lleno
+      if (hora >= 19 && hora <= 23) factorOcupacion = 1.0; 
       else if (hora >= 17 && hora < 19) factorOcupacion = 0.92;
       else factorOcupacion = 0.12;
     }
@@ -57,12 +56,34 @@ function calcularDisponibilidadPorHora() {
   renderRecintos();
 }
 
-// Renderizar tarjetas con barras de ocupación y botón de apartar
+// Renderizar tarjetas de recintos con barra lateral flotante para ajustar hora
 function renderRecintos() {
   const container = document.getElementById('listaRecintosContainer');
   if (!container) return;
 
-  container.innerHTML = recintosData.map(r => {
+  // Inyectamos también una barra lateral flotante móvil para subir/bajar hora con elegancia
+  let htmlContenido = `
+    <!-- BARRA LATERAL / FLOTANTE MÓVIL PARA CONTROL DE HORA -->
+    <div class="bg-brandCard/90 backdrop-blur border border-slate-800 p-2.5 rounded-2xl flex justify-between items-center shadow-lg">
+      <div class="flex items-center gap-2">
+        <span class="text-base">🕒</span>
+        <div>
+          <p class="text-[11px] text-slate-400 font-medium">Hora Simulada</p>
+          <p id="horaActualRecintos" class="text-xs font-bold text-white">--:--</p>
+        </div>
+      </div>
+      <div class="flex gap-1.5">
+        <button onclick="cambiarHora(-1)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-700 active:scale-95 transition">
+          ◀ -1h
+        </button>
+        <button onclick="cambiarHora(1)" class="bg-brandBlue/20 hover:bg-brandBlue/30 text-brandBlue px-3 py-1.5 rounded-xl text-xs font-bold border border-brandBlue/40 active:scale-95 transition">
+          +1h ▶
+        </button>
+      </div>
+    </div>
+  `;
+
+  htmlContenido += recintosData.map(r => {
     const porcentajeLibre = (r.libres / r.capacidadTotal) * 100;
     const esMiReserva = typeof reservaActiva !== 'undefined' && reservaActiva && reservaActiva.recintoId === r.id;
 
@@ -70,51 +91,86 @@ function renderRecintos() {
     let colorBarra = 'bg-brandGreen';
 
     if (r.libres === 0) {
-      estadoBadge = `<span class="bg-red-500/10 text-brandRed border border-brandRed/30 text-xs px-2.5 py-1 rounded-full font-bold">● Lleno (0 / ${r.capacidadTotal})</span>`;
+      estadoBadge = `<span class="bg-red-500/10 text-brandRed border border-red-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold">● Lleno</span>`;
       colorBarra = 'bg-brandRed';
     } else if (porcentajeLibre <= 15) {
-      estadoBadge = `<span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs px-2.5 py-1 rounded-full font-bold">● Casi lleno (${r.libres} libres)</span>`;
+      estadoBadge = `<span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold">● Casi lleno (${r.libres})</span>`;
       colorBarra = 'bg-amber-400';
     } else {
-      estadoBadge = `<span class="bg-emerald-500/10 text-brandGreen border border-brandGreen/30 text-xs px-2.5 py-1 rounded-full font-bold">● ${r.libres.toLocaleString()} libres</span>`;
+      estadoBadge = `<span class="bg-emerald-500/10 text-brandGreen border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold">● ${r.libres.toLocaleString()} libres</span>`;
       colorBarra = 'bg-brandGreen';
     }
 
     const porcentajeOcupado = Math.min(100, Math.round(((r.capacidadTotal - r.libres) / r.capacidadTotal) * 100));
 
     return `
-      <div class="bg-brandCard p-4 rounded-xl border ${esMiReserva ? 'border-brandBlue' : 'border-slate-800'} space-y-3 transition">
+      <div class="bg-brandCard p-3.5 rounded-2xl border ${esMiReserva ? 'border-brandBlue' : 'border-slate-800'} space-y-2.5 transition">
         <div class="flex justify-between items-start gap-2">
           <div>
-            <h3 class="font-bold text-sm">${r.nombre}</h3>
-            <span class="text-xs text-slate-400">${r.zona} • $${r.tarifa}/hr • Cap. ${r.capacidadTotal.toLocaleString()}</span>
+            <h3 class="font-bold text-xs text-white">${r.nombre}</h3>
+            <span class="text-[11px] text-slate-400">${r.zona} • $${r.tarifa}/hr</span>
           </div>
           ${estadoBadge}
         </div>
 
-        <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
-          <div class="${colorBarra} h-full transition-all duration-500" style="width: ${porcentajeOcupado}%"></div>
+        <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800">
+          <div class="${colorBarra} h-full transition-all duration-300" style="width: ${porcentajeOcupado}%"></div>
         </div>
 
         ${r.libres > 0 || esMiReserva ? `
           <button onclick="apartarLugar('${r.id}')" 
             ${typeof reservaActiva !== 'undefined' && reservaActiva ? 'disabled' : ''}
-            class="w-full py-2 rounded-xl text-xs font-bold transition ${
+            class="w-full py-2 rounded-xl text-xs font-bold transition active:scale-98 ${
               esMiReserva 
                 ? 'bg-brandBlue/20 text-brandBlue border border-brandBlue/40' 
                 : typeof reservaActiva !== 'undefined' && reservaActiva 
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
-                  : 'bg-brandGreen hover:bg-emerald-600 text-brandDark'
+                  : 'bg-brandGreen hover:bg-emerald-600 text-brandDark shadow-md'
             }">
-            ${esMiReserva ? '✓ Cajón Apartado (Ir a Pase QR)' : typeof reservaActiva !== 'undefined' && reservaActiva ? 'Ya tienes un lugar activo' : '🅿️ Apartar 1 Cajón'}
+            ${esMiReserva ? '✓ Lugar Apartado (Ver Burbuja QR)' : typeof reservaActiva !== 'undefined' && reservaActiva ? 'Ya tienes un lugar activo' : '🅿️ Apartar 1 Cajón'}
           </button>
         ` : ''}
       </div>
     `;
   }).join('');
+
+  container.innerHTML = htmlContenido;
 }
 
-// Ejecutar al cargar la página
+// Función para apartar y redirigir directamente al menú de QR con burbuja activa
+function apartarLugar(recintoId) {
+  const badgeTarjeta = document.getElementById('estadoTarjetaBadge');
+  if (badgeTarjeta && badgeTarjeta.innerText.includes('NO REGISTRADA')) {
+    alert("⚠️ Debes registrar una tarjeta en tu Perfil antes de apartar un lugar.");
+    switchTab('perfil');
+    return;
+  }
+
+  const recinto = recintosData.find(r => r.id === recintoId);
+  if (!recinto || recinto.libres <= 0) return;
+
+  recinto.libres -= 1;
+  const folio = 'PT-' + Math.floor(1000 + Math.random() * 9000);
+
+  // Crear la reserva activa (burbuja de QR)
+  reservaActiva = {
+    folio: folio,
+    recintoId: recinto.id,
+    recintoNombre: recinto.nombre,
+    tarifa: recinto.tarifa,
+    estado: 'RESERVADO', 
+    horaEntrada: null
+  };
+
+  renderRecintos();
+  if (typeof actualizarVistaQR === 'function') {
+    actualizarVistaQR();
+  }
+
+  // Redirigir de inmediato al menú de QR como se solicitó
+  switchTab('escaneo');
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   calcularDisponibilidadPorHora();
 });

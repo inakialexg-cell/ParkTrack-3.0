@@ -134,6 +134,57 @@ function showAuthView(viewName) {
   if (viewName === 'register') document.getElementById('viewRegister').classList.remove('hidden');
 }
 
+// Actualizar la pantalla de Pase QR con la burbuja del lugar apartado
+function actualizarVistaQR() {
+  const qrImg = document.getElementById('qrImage');
+  const qrInst = document.getElementById('qrInstruction');
+  const btnEntrada = document.getElementById('btnSimularEntrada');
+  const btnSalida = document.getElementById('btnSimularSalida');
+
+  if (!qrImg || !qrInst) return;
+
+  if (!reservaActiva) {
+    qrInst.innerHTML = "No tienes ningún lugar apartado actualmente.<br><span class='text-slate-400 text-[11px]'>Ve a la sección de Recintos para reservar un cajón.</span>";
+    qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=ParkTrack-General";
+    if (btnEntrada) btnEntrada.classList.add('hidden');
+    if (btnSalida) btnSalida.classList.add('hidden');
+    return;
+  }
+
+  if (reservaActiva.estado === 'RESERVADO') {
+    // BURBUJA / QR 1: ENTRADA AL RECINTO APARTADO
+    qrInst.innerHTML = `
+      <div class="bg-brandBlue/10 border border-brandBlue/30 p-2.5 rounded-xl mb-2 text-center">
+        <span class="text-brandBlue font-bold text-xs">🅿️ LUGAR APARTADO</span><br>
+        <span class="text-white font-semibold text-xs">${reservaActiva.recintoNombre}</span><br>
+        <span class="text-[10px] text-slate-400">Folio: ${reservaActiva.folio}</span>
+      </div>
+      <span class="text-brandGreen font-bold text-xs">Escanea este código al LLEGAR para registrar tu ENTRADA.</span>
+    `;
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=ENTRADA-${reservaActiva.folio}-${reservaActiva.recintoId}`;
+    if (btnEntrada) {
+      btnEntrada.innerText = `Simular Llegada / ENTRADA 🚗`;
+      btnEntrada.classList.remove('hidden');
+    }
+    if (btnSalida) btnSalida.classList.add('hidden');
+  } else if (reservaActiva.estado === 'DENTRO') {
+    // BURBUJA / QR 2: SALIDA Y COBRO AUTOMÁTICO
+    qrInst.innerHTML = `
+      <div class="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl mb-2 text-center">
+        <span class="text-amber-400 font-bold text-xs">🚗 ESTANCIA ACTIVA</span><br>
+        <span class="text-white font-semibold text-xs">${reservaActiva.recintoNombre}</span><br>
+        <span class="text-[10px] text-slate-400">Entrada: ${reservaActiva.horaEntrada}</span>
+      </div>
+      <span class="text-amber-400 font-bold text-xs">Escanea este segundo código al SALIR para procesar el cobro.</span>
+    `;
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=SALIDA-${reservaActiva.folio}-${reservaActiva.recintoId}`;
+    if (btnEntrada) btnEntrada.classList.add('hidden');
+    if (btnSalida) {
+      btnSalida.innerText = `Simular SALIDA y Pagar 🏁`;
+      btnSalida.classList.remove('hidden');
+    }
+  }
+}
 // 5. NAVEGACIÓN DE PESTAÑAS
 function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
