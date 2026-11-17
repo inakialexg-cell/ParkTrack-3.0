@@ -168,15 +168,20 @@
         <div class="flex justify-between items-center">
           <div>
             <h2 class="text-lg font-bold">Recintos Disponibles</h2>
-            <p class="text-xs text-slate-400">Ocupación actualizada por hora (<span id="horaActualRecintos">--:--</span>).</p>
+            <p class="text-xs text-slate-400">Ocupación por hora (<span id="horaActualRecintos">17:00 hrs</span>).</p>
           </div>
-          <!-- Botón para adelantar 1 hora y ver cambios -->
-          <button onclick="simularCambioHora()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-bold px-2.5 py-1.5 rounded-xl text-brandBlue transition">
-            🕒 +1 Hora
-          </button>
+          <!-- Controles para subir y bajar la hora -->
+          <div class="flex gap-1">
+            <button onclick="cambiarHora(-1)" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-bold px-2 py-1.5 rounded-lg text-slate-300 transition" title="Restar 1 hora">
+              ◀ -1h
+            </button>
+            <button onclick="cambiarHora(1)" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-bold px-2.5 py-1.5 rounded-lg text-brandBlue transition" title="Sumar 1 hora">
+              +1h ▶
+            </button>
+          </div>
         </div>
 
-        <!-- ¡ESTE CONTENEDOR FALTABA! Aquí es donde JS dibuja los recintos y el botón de apartar -->
+        <!-- CONTENEDOR DONDE SE DIBUJAN LOS RECINTOS Y EL BOTÓN DE APARTAR -->
         <div id="listaRecintosContainer" class="space-y-3"></div>
 
         <h3 class="font-bold text-sm pt-2">Ubicaciones en Mapa</h3>

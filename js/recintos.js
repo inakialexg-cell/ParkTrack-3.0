@@ -1,9 +1,4 @@
-// =====================================================================
-//  Park In · Recintos simulados
-//  Los lugares y su ocupación son de prueba. "libres" cambia solo cada
-//  pocos segundos para simular disponibilidad en vivo.
-// =====================================================================
-// Capacidades aproximadas reales de estacionamiento por recinto
+// Catálogo y capacidades reales de estacionamiento por recinto en Monterrey
 const recintosBase = [
   { id: 'fundidora', nombre: 'Parque Fundidora (E1-E10)', zona: 'Monterrey', capacidadTotal: 3200, tarifa: 35, tipo: 'parque' },
   { id: 'sultanes', nombre: 'Estadio Mobil Super (Sultanes)', zona: 'Monterrey', capacidadTotal: 2500, tarifa: 50, tipo: 'estadio' },
@@ -13,12 +8,20 @@ const recintosBase = [
 ];
 
 let recintosData = [];
-let horaSimuladaOffset = 0; // Permite adelantar horas para demostración
+let horaSimuladaOffset = 0; // Controla el desfase de hora con los botones
 
-// Calcula cuántos lugares libres hay según la hora del día y el tipo de recinto
+// Función para subir o bajar la hora (-1 o +1)
+function cambiarHora(cantidad) {
+  horaSimuladaOffset += cantidad;
+  calcularDisponibilidadPorHora();
+}
+
+// Calcula cuántos lugares libres hay según la hora simulada
 function calcularDisponibilidadPorHora() {
   const ahora = new Date();
-  const hora = (ahora.getHours() + horaSimuladaOffset) % 24;
+  // Calcula la hora cíclica entre 0 y 23
+  let hora = (ahora.getHours() + horaSimuladaOffset) % 24;
+  if (hora < 0) hora += 24;
   
   const labelHora = document.getElementById('horaActualRecintos');
   if (labelHora) {
@@ -26,31 +29,26 @@ function calcularDisponibilidadPorHora() {
   }
 
   recintosData = recintosBase.map(r => {
-    let factorOcupacion = 0.25; // Madrugada / mañana temprano (25% ocupado)
+    let factorOcupacion = 0.25; // Madrugada
 
     if (r.tipo === 'plaza') {
-      // Plazas comerciales: pico entre 13:00 y 21:00 hrs
       if (hora >= 13 && hora <= 20) factorOcupacion = 0.88;
       else if (hora >= 10 && hora < 13) factorOcupacion = 0.55;
       else if (hora > 20 && hora <= 22) factorOcupacion = 0.65;
     } else if (r.tipo === 'parque') {
-      // Parque Fundidora: pico vespertino de 16:00 a 21:00 hrs
       if (hora >= 16 && hora <= 21) factorOcupacion = 0.82;
       else if (hora >= 9 && hora < 16) factorOcupacion = 0.45;
     } else if (r.tipo === 'estadio') {
-      // Estadios: muy baja ocupación de día, lleno total en horario de evento (19:00 a 23:00 hrs)
       if (hora >= 19 && hora <= 23) factorOcupacion = 1.0; // Lleno
-      else if (hora >= 17 && hora < 19) factorOcupacion = 0.92; // Casi lleno
-      else factorOcupacion = 0.12; // Disponible durante el día
+      else if (hora >= 17 && hora < 19) factorOcupacion = 0.92;
+      else factorOcupacion = 0.12;
     }
 
-    // Variación ligera única por recinto para que no tengan números idénticos
     const variacion = ((hora * 17 + r.capacidadTotal) % 45);
     let ocupados = Math.min(r.capacidadTotal, Math.floor(r.capacidadTotal * factorOcupacion) + variacion);
     if (factorOcupacion === 1.0) ocupados = r.capacidadTotal;
 
-    // Si el usuario ya apartó 1 lugar en este recinto, descontarlo
-    const descuentoReserva = (reservaActiva && reservaActiva.recintoId === r.id) ? 1 : 0;
+    const descuentoReserva = (typeof reservaActiva !== 'undefined' && reservaActiva && reservaActiva.recintoId === r.id) ? 1 : 0;
     const libres = Math.max(0, r.capacidadTotal - ocupados - descuentoReserva);
 
     return { ...r, libres };
@@ -59,22 +57,15 @@ function calcularDisponibilidadPorHora() {
   renderRecintos();
 }
 
-// Botón para probar cómo cambian los estados cada hora
-function simularCambioHora() {
-  horaSimuladaOffset = (horaSimuladaOffset + 1) % 24;
-  calcularDisponibilidadPorHora();
-}
-
-// Renderizar tarjetas con estado visual dinámico (Disponible / Casi lleno / Lleno) y barra de cupo
+// Renderizar tarjetas con barras de ocupación y botón de apartar
 function renderRecintos() {
   const container = document.getElementById('listaRecintosContainer');
   if (!container) return;
 
   container.innerHTML = recintosData.map(r => {
     const porcentajeLibre = (r.libres / r.capacidadTotal) * 100;
-    const esMiReserva = reservaActiva && reservaActiva.recintoId === r.id;
+    const esMiReserva = typeof reservaActiva !== 'undefined' && reservaActiva && reservaActiva.recintoId === r.id;
 
-    // Determinar forma/estado visual según lugares libres
     let estadoBadge = '';
     let colorBarra = 'bg-brandGreen';
 
@@ -101,22 +92,21 @@ function renderRecintos() {
           ${estadoBadge}
         </div>
 
-        <!-- Barra visual de ocupación del estacionamiento -->
         <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
           <div class="${colorBarra} h-full transition-all duration-500" style="width: ${porcentajeOcupado}%"></div>
         </div>
 
         ${r.libres > 0 || esMiReserva ? `
           <button onclick="apartarLugar('${r.id}')" 
-            ${reservaActiva ? 'disabled' : ''}
+            ${typeof reservaActiva !== 'undefined' && reservaActiva ? 'disabled' : ''}
             class="w-full py-2 rounded-xl text-xs font-bold transition ${
               esMiReserva 
                 ? 'bg-brandBlue/20 text-brandBlue border border-brandBlue/40' 
-                : reservaActiva 
+                : typeof reservaActiva !== 'undefined' && reservaActiva 
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
                   : 'bg-brandGreen hover:bg-emerald-600 text-brandDark'
             }">
-            ${esMiReserva ? '✓ Cajón Apartado (Ir a Pase QR)' : reservaActiva ? 'Ya tienes un lugar activo' : '🅿️ Apartar 1 Cajón'}
+            ${esMiReserva ? '✓ Cajón Apartado (Ir a Pase QR)' : typeof reservaActiva !== 'undefined' && reservaActiva ? 'Ya tienes un lugar activo' : '🅿️ Apartar 1 Cajón'}
           </button>
         ` : ''}
       </div>
@@ -124,5 +114,7 @@ function renderRecintos() {
   }).join('');
 }
 
-// Actualizar automáticamente cada hora real mientras la app esté abierta
-setInterval(calcularDisponibilidadPorHora, 3600000);
+// Ejecutar al cargar la página
+document.addEventListener("DOMContentLoaded", () => {
+  calcularDisponibilidadPorHora();
+});
