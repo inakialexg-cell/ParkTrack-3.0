@@ -54,6 +54,11 @@ function calcularDisponibilidadPorHora() {
   });
 
   renderRecintos();
+
+  // Sincronizar y actualizar automáticamente los pines del mapa Leaflet
+  if (typeof actualizarMarcadoresMapa === 'function') {
+    actualizarMarcadoresMapa();
+  }
 }
 
 // Renderizar tarjetas de recintos con barra lateral flotante para ajustar hora
@@ -163,10 +168,12 @@ function apartarLugar(recintoId) {
   if (typeof actualizarVistaQR === 'function') {
     actualizarVistaQR();
   }
-  //: Actualizar el mapa automáticamente al cambiar la hora o disponibilidad
+  
+  // Actualizar el mapa automáticamente al apartar cajón
   if (typeof actualizarMarcadoresMapa === 'function') {
     actualizarMarcadoresMapa();
   }
+
   // Redirigir de inmediato al menú de QR como se solicitó
   switchTab('escaneo');
 }
