@@ -1,15 +1,105 @@
-/* Personalización adicional de Leaflet para encajar con el tema oscuro */
+/* =====================================================================
+   PARK IN — estilos (formato móvil, tema oscuro)
+   ===================================================================== */
+:root {
+  --bg: #070b16;
+  --bg-2: #0b1222;
+  --surface: #0f1729;
+  --surface-2: #162038;
+  --line: rgba(255, 255, 255, .08);
+  --line-2: rgba(255, 255, 255, .14);
+  --text: #f2f5fb;
+  --muted: #8b97b1;
+  --green: #2ee6a6;
+  --teal: #14b8a6;
+  --blue: #3b82f6;
+  --red: #ff5c6c;
+  --amber: #ffb84d;
+  --grad: linear-gradient(135deg, #34e5a5 0%, #14b8a6 55%, #2f6bff 100%);
+  --radius: 20px;
+  --font: 'Outfit', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: var(--font);
+  color: var(--text);
+  background:
+    radial-gradient(900px 500px at 15% -10%, rgba(20, 184, 166, .16), transparent 60%),
+    radial-gradient(800px 500px at 100% 110%, rgba(47, 107, 255, .16), transparent 60%),
+    #04070f;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; }
+h1, h2, h3, p { margin: 0; }
+.hidden { display: none !important; }
+
+/* ---------- Contenedor "teléfono" ---------- */
+#phone {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+@media (min-width: 520px) and (min-height: 740px) {
+  #phone {
+    height: min(880px, calc(100dvh - 40px));
+    border-radius: 44px;
+    box-shadow: 0 0 0 9px #0a0f1c, 0 0 0 10px rgba(255, 255, 255, .09), 0 50px 120px rgba(0, 0, 0, .65);
+  }
+}
+
+/* ---------- Marca ---------- */
+.wordmark { font-weight: 800; letter-spacing: -.02em; }
+.wordmark .in {
+  background: var(--grad);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  margin-left: .12em;
+}
+
+/* ---------- Auth ---------- */
+#auth {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 28px 26px calc(28px + env(safe-area-inset-bottom));
+  overflow-y: auto; position: relative;
+  background:
+    radial-gradient(420px 320px at 50% 18%, rgba(20, 184, 166, .22), transparent 70%),
+    radial-gradient(300px 260px at 90% 90%, rgba(47, 107, 255, .16), transparent 70%);
+}
+.hero-logo { position: relative; width: 132px; height: 132px; margin-bottom: 22px; animation: float 5s ease-in-out infinite; }
+.hero-logo img { position: relative; width: 100%; height: 100%; display: block; filter: drop-shadow(0 18px 38px rgba(20, 184, 166, .55)); }
+.hero-logo::before, .hero-logo::after {
+  content: ''; position: absolute; inset: -6px; border-radius: 42px;
+  border: 2px solid rgba(46, 230, 166, .55); animation: ring 3s ease-out infinite;
+}
+.hero-logo::after { animation-delay: 1.5s; }
+@keyframes ring { from { transform: scale(.92); opacity: .8; } to { transform: scale(1.5); opacity: 0; } }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Scrollbar oculto pero funcional dentro del teléfono */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.scroll-area::-webkit-scrollbar { display: none; }
+
+/* Popups oscuros para Leaflet */
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-  background-color: #131B2E !important;
-  color: #ffffff !important;
-  border: 1px solid #374151;
-}
-
-.tab-content {
-  animation: fadeIn 0.2s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--line-2);
 }
