@@ -163,7 +163,10 @@ function apartarLugar(recintoId) {
   if (typeof actualizarVistaQR === 'function') {
     actualizarVistaQR();
   }
-
+  //: Actualizar el mapa automáticamente al cambiar la hora o disponibilidad
+  if (typeof actualizarMarcadoresMapa === 'function') {
+    actualizarMarcadoresMapa();
+  }
   // Redirigir de inmediato al menú de QR como se solicitó
   switchTab('escaneo');
 }
