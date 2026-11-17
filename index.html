@@ -170,13 +170,13 @@
             <h2 class="text-lg font-bold">Recintos Disponibles</h2>
             <p class="text-xs text-slate-400">Ocupación actualizada por hora (<span id="horaActualRecintos">--:--</span>).</p>
           </div>
-          <!-- Botón opcional para simular el avance de 1 hora en pruebas -->
+          <!-- Botón para adelantar 1 hora y ver cambios -->
           <button onclick="simularCambioHora()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-bold px-2.5 py-1.5 rounded-xl text-brandBlue transition">
             🕒 +1 Hora
           </button>
         </div>
 
-        <!-- Contenedor dinámico donde JS dibujará los 5 recintos con su capacidad real -->
+        <!-- ¡ESTE CONTENEDOR FALTABA! Aquí es donde JS dibuja los recintos y el botón de apartar -->
         <div id="listaRecintosContainer" class="space-y-3"></div>
 
         <h3 class="font-bold text-sm pt-2">Ubicaciones en Mapa</h3>
@@ -324,5 +324,6 @@
   <script src="js/app.js"></script>
   <script src="js/map.js"></script>
   <script src="js/scanner.js"></script>
+  <script src="js/recintos.js"></script>
 </body>
 </html>
